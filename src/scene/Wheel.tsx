@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import gsap from 'gsap'
+import { useFrame } from '@react-three/fiber'
 import { useGarage } from '../store'
+import { bindEnv } from './envBind'
 
 /**
  * Catalogue wheel assembly, axis = +Z, outer face toward +Z. Everything is procedural (no unlicensed assets):
@@ -142,6 +144,8 @@ export function Wheel({ design, color, side }: { design: string; color: string; 
   const face = useMemo(() => faceGeo(design), [design])
   const mat = useMemo(() => new THREE.MeshPhysicalMaterial({ color, roughness: 0.3, metalness: 0.8, clearcoat: 0.55, clearcoatRoughness: 0.18, envMapIntensity: 1.7, side: THREE.DoubleSide }), []) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => mat.dispose(), [mat])
+  // metals get their own reflection strength (the shared brake/lug materials are re-bound by every wheel, which is cheap)
+  useFrame(({ scene }) => { bindEnv(scene, mat, 1.5); bindEnv(scene, discMat, 1.4); bindEnv(scene, lugMat, 1.6) })
   useEffect(() => { tireTex ??= tireBump(); tireMat.bumpMap = tireTex; tireMat.needsUpdate = true }, [])
   useEffect(() => {
     const c = new THREE.Color(color)

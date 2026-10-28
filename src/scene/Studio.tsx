@@ -1,9 +1,10 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { useFrame, useThree } from '@react-three/fiber'
 import { ContactShadows, Environment, Lightformer, MeshReflectorMaterial } from '@react-three/drei'
 import { qualityLevel, useGarage } from '../store'
 import { fx } from './fx'
+import { bindEnv } from './envBind'
 
 function concrete() {
   const c = document.createElement('canvas'); c.width = c.height = 512
@@ -40,7 +41,11 @@ export function Studio() {
   const light = bgMode === 'light'
   const bg = light ? '#cfd4d8' : bgMode === 'void' ? '#050607' : BG[theme][env]
 
-  useFrame(() => { scene.environmentIntensity = fx.env * E.env * (light ? 1.4 : 1) })
+  const roomRef = useRef<THREE.MeshStandardMaterial>(null)
+  useFrame(() => {
+    scene.environmentIntensity = fx.env * E.env * (light ? 1.4 : 1)
+    if (roomRef.current) bindEnv(scene, roomRef.current, 0.25) // walls stay dark: they should frame the car, not glow
+  })
 
   const stripCount = 7
   const strips = Array.from({ length: stripCount }, (_, i) => -7.2 + i * 2.4)
@@ -66,18 +71,18 @@ export function Studio() {
         {/* broad dim ceiling: keeps metal and dark paint from turning pitch black between the strips */}
         <Lightformer form="rect" intensity={env === 'night' ? 0.12 : env === 'day' ? 0.5 : 0.45} position={[0, 8, 0]} rotation-x={Math.PI / 2} scale={[26, 26, 1]} color="#cfdcf5" />
         <Lightformer form="rect" intensity={env === 'day' ? 4 : 1.1} position={[-9, 2.5, 0]} rotation-y={Math.PI / 2} scale={[10, 3, 1]} color={env === 'day' ? '#fff0d8' : '#c9dcff'} />
-        <Lightformer form="rect" intensity={env === 'night' ? 2.2 : 0.9} position={[9, 1.5, -3]} rotation-y={-Math.PI / 2} scale={[8, 0.6, 1]} color="#4FE0C0" />
+        <Lightformer form="rect" intensity={env === 'night' ? 2.2 : 0.9} position={[9, 1.5, -3]} rotation-y={-Math.PI / 2} scale={[8, 0.6, 1]} color="#cfe0ff" />
         {env === 'day' && <Lightformer form="rect" intensity={1.8} position={[0, 9, 0]} rotation-x={Math.PI / 2} scale={[24, 24, 1]} color="#dbe8ff" />}
       </Environment>
 
       <directionalLight position={[4, 8, 3]} intensity={E.key} color={env === 'day' ? '#fff3e0' : '#cfe0ff'} />
-      <directionalLight position={[-6, 3, -5]} intensity={E.key * 0.35} color="#4FE0C0" />
+      <directionalLight position={[-6, 3, -5]} intensity={E.key * 0.35} color="#b9c9e6" />
 
       {/* room */}
       {bgMode === 'garage' && (
         <group>
           {/* room floor sits 2 cm below the studio floor: coplanar faces z-fight into blocky patches */}
-          <mesh position={[0, 4.98, 0]}><boxGeometry args={[34, 10, 34]} /><meshStandardMaterial color={theme === 'light' ? '#d3d7da' : '#12161a'} roughness={0.95} side={THREE.BackSide} /></mesh>
+          <mesh position={[0, 4.98, 0]}><boxGeometry args={[34, 10, 34]} /><meshStandardMaterial ref={roomRef} color={theme === 'light' ? '#d3d7da' : '#12161a'} roughness={0.95} side={THREE.BackSide} /></mesh>
           {/* one-sided panels facing down: seen from the car, invisible when the camera sits above them */}
           {strips.map((z, i) => <mesh key={i} position={[0, 4.95, z]} rotation-x={Math.PI / 2} material={stripMats[i]}><planeGeometry args={[14, 0.4]} /></mesh>)}
         </group>

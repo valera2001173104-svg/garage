@@ -8,6 +8,7 @@ import { DEFAULT_CONFIG } from '../lib/catalog'
 import { Wheel, setCaliperColor } from './Wheel'
 import { fx } from './fx'
 import { loadModel } from './modelLoader'
+import { bindEnv } from './envBind'
 import { LIVERY_MODES, applyLivery, makeLiveryUniforms } from './livery'
 
 /**
@@ -22,6 +23,15 @@ const FINISH = {
   gloss: { metalness: 0.05, roughness: 0.12, clearcoat: 1, clearcoatRoughness: 0.02 }
 } as const
 const TINT_DARK = new THREE.Color('#0b0e10')
+let glowTex: THREE.CanvasTexture | null = null
+/** soft radial falloff used for the lamp halos */
+const glowTexture = () => (glowTex ??= (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 128
+  const x = c.getContext('2d')!, g = x.createRadialGradient(64, 64, 0, 64, 64, 64)
+  g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.16, 'rgba(255,255,255,.55)'); g.addColorStop(0.5, 'rgba(255,255,255,.12)'); g.addColorStop(1, 'rgba(255,255,255,0)')
+  x.fillStyle = g; x.fillRect(0, 0, 128, 128)
+  return new THREE.CanvasTexture(c)
+})())
 const WHEEL_NODES =['WheelFrontL', 'WheelFrontR', 'WheelRearL', 'WheelRearR']
 
 export default function ModelCar() {
@@ -58,10 +68,39 @@ export default function ModelCar() {
     for (const n of ['Paint 2 Carmine', 'Brake', 'Interior 3 Carmine']) if (byName[n]) orig[n] = byName[n].color.clone()
     const lv = makeLiveryUniforms(box.max.x, box.max.y)
     for (const n of ['Paint 1 Carmine', 'Paint 2 Carmine', 'Panel Sides']) if (byName[n]) applyLivery(byName[n], lv)
-    return { root, mats: [...mats.values()], byName, orig, wheels, base, spots, lv, front: box.max.z, rear: box.min.z, hw: box.max.x, top: box.max.y }
+    // Soft halo sprites on the lamps, placed from the real vertices of every mesh that uses a lamp material:
+    // a wide strip (the headlights span the whole nose) gets a halo near each end, a short piece gets one in the middle.
+    const glows: { head: boolean; mat: THREE.SpriteMaterial; sprite: THREE.Sprite }[] = []
+    root.traverse(o => {
+      const mesh = o as THREE.Mesh
+      if (!mesh.isMesh) return
+      const n = (mesh.material as THREE.Material).name
+      if (n !== 'Headlight' && n !== 'Brakelight') return
+      const head = n === 'Headlight', pos = mesh.geometry.attributes.position
+      const pts: THREE.Vector3[] = []
+      for (let i = 0; i < pos.count; i++) pts.push(new THREE.Vector3().fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld))
+      if (!pts.length) return
+      const b = new THREE.Box3().setFromPoints(pts)
+      const at = (x: number) => { // average position of the vertices around this x
+        const near = pts.filter(p => Math.abs(p.x - x) < 0.1), sum = new THREE.Vector3()
+        near.forEach(p => sum.add(p))
+        return sum.divideScalar(Math.max(1, near.length))
+      }
+      const xs = b.max.x - b.min.x > 0.6 ? [b.min.x + 0.12, b.max.x - 0.12] : [(b.min.x + b.max.x) / 2]
+      for (const x of xs) {
+        const mat = new THREE.SpriteMaterial({ map: glowTexture(), color: head ? '#dcebff' : '#ff3a22', transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false }) // not depth-tested: the body would hide its lower half; the facing fade hides it from behind
+        const s = new THREE.Sprite(mat), p = at(x)
+        s.renderOrder = 5
+        s.position.set(p.x, p.y - (head ? 0 : 0.05), p.z + (head ? 0.05 : -0.05)) // the glowing part of a tail lamp is its lower edge // a little outside the lens so the body never clips it
+        s.scale.setScalar(head ? 0.6 : 0.46)
+        root.add(s)
+        glows.push({ head, mat, sprite: s })
+      }
+    })
+    return { root, mats: [...mats.values()], byName, orig, wheels, base, spots, lv, glows, front: box.max.z, rear: box.min.z, hw: box.max.x, top: box.max.y }
   }, [gltf])
   useEffect(() => { useGarage.setState(s => ({ modelLoad: { ...s.modelLoad, state: 'ready' } })) }, [m])
-  useEffect(() => () => m.mats.forEach(x => x.dispose()), [m])
+  useEffect(() => () => { m.mats.forEach(x => x.dispose()); m.glows.forEach(g => g.mat.dispose()) }, [m])
 
   const dur = (d: number) => (useGarage.getState().reduced ? 0 : d)
   const paint = m.byName['Paint 1 Carmine']
@@ -115,6 +154,7 @@ export default function ModelCar() {
     if (!g) return
     if (low) { g.transmission = 0; g.transparent = true }
     else { g.transmission = 1; g.transparent = false; g.opacity = 1 }
+    g.envMapIntensity = 0.55 // glass is less mirror-like than the paint; keeps the cabin readable through it
     applyGlass(g, tint.current.v)
     g.needsUpdate = true
   }, [low, m]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -125,7 +165,10 @@ export default function ModelCar() {
     return () => { t.kill() }
   }, [cfg.tint, low, m]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  useFrame(() => {
+  const tmpV = useMemo(() => new THREE.Vector3(), [])
+  useFrame(({ camera, scene }) => {
+    const gl = m.byName['Glass']
+    if (gl) bindEnv(scene, gl, 0.6)
     const off = -0.07 + ride.current.v * 0.14
     m.root.position.y = off // body (and everything parented to it) moves…
     if (rot.current) { m.lv.uLvInv.value.copy(rot.current.matrixWorld).invert(); m.lv.uLvOff.value = off } // stripes ride with the body
@@ -133,6 +176,13 @@ export default function ModelCar() {
     const h = m.byName['Headlight'], t = m.byName['Brakelight']
     if (h) h.emissiveIntensity = lights.current.h * 10 * (1 - fx.lights * 0.3)
     if (t) t.emissiveIntensity = lights.current.t * 2.2
+    for (const g of m.glows) {
+      // a lamp only glows toward the side it faces: fade the halo out as the camera moves behind the car
+      g.sprite.getWorldPosition(tmpV)
+      const facing = (g.head ? 1 : -1) * (camera.position.x - tmpV.x) / Math.max(0.001, camera.position.distanceTo(tmpV))
+      const vis = Math.min(1, Math.max(0, (facing + 0.05) / 0.5))
+      g.mat.opacity = vis * (g.head ? lights.current.h * (cfg.env === 'night' ? 0.9 : 0.6) : lights.current.t * (cfg.env === 'night' ? 0.85 : 0.6))
+    }
     spots.current.forEach(s => s && (s.intensity = lights.current.h * (cfg.env === 'night' ? 80 : 25)))
   })
 

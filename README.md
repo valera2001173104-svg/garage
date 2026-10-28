@@ -25,6 +25,10 @@ Undo/Redo (Ctrl+Z / Ctrl+Shift+Z), change history, autosave (config + photo sess
 - Catalogue wheels are fully procedural (`src/scene/Wheel.tsx`): dished face with raised ribs, hub plate, centre cap, lug nuts, valve stem,
   drilled brake rotor, arc-shaped caliper (coloured by the Calipers zone) and a tyre with generated tread and sidewall lettering (bump map).
   Studio lighting has long side softboxes so flanks get highlight bands; headlight beams are aimed through real target objects.
+- Lamps: emissive lens + soft additive halos near the ends of each lamp strip (placed from the real mesh vertices, fade out when the camera is behind the lamp);
+  the Light section jumps the camera to the headlights / tail lights. Cabin view looks through the glass; glass has its own reflection strength so the interior reads.
+  Studio fill lights are neutral (a tinted fill used to colour the roof and floor mats: a configurator must show true colours).
+  Note: in three r186 `material.envMapIntensity` is ignored unless the material has its own `envMap`; `src/scene/envBind.ts` binds the scene environment per material.
 - Window tint (none / 70% / 35% / 5% light passing, with the RU 70% front-glass rule shown) — applied to all glass of the model.
 - Stripes (twin / wide / side band, 8 colours): drawn by a shader patch on the model's paint materials (`src/scene/livery.ts`) in the car's own frame,
   so they follow the hood, roof and body without textures. The side band is an approximation: it uses the surface normal and a height band.

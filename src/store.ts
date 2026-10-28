@@ -4,7 +4,7 @@ import type { CarConfig, Project } from './lib/db'
 import { parseBuild } from './lib/share'
 
 export type Screen = 'intro' | 'garage' | 'scan' | 'mygarage' | 'create3d'
-export type ViewId = 'front' | 'rear' | 'side' | 'three' | 'wheel' | 'rear-wheel' | 'cabin' | 'top' | 'reset'
+export type ViewId = 'front' | 'rear' | 'side' | 'three' | 'wheel' | 'rear-wheel' | 'cabin' | 'top' | 'headlight' | 'taillight' | 'reset'
 export type Theme = 'dark' | 'light'
 export type Quality = 'auto' | 'high' | 'medium' | 'low'
 export type Entry = { label: string; config: CarConfig }

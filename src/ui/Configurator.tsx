@@ -78,8 +78,8 @@ function Controls({ sec }: { sec: Sec }) {
   </>)
   if (sec === 'light') return (
     <div>
-      <Toggle label="Фары" on={c.headlights} onChange={headlights => set({ headlights })} /><hr style={{ border: 0, borderTop: '1px solid var(--line)', margin: 0 }} />
-      <Toggle label="Задние фонари" on={c.taillights} onChange={taillights => set({ taillights })} />
+      <Toggle label="Фары" on={c.headlights} onChange={headlights => { set({ headlights }); if (headlights) setView('headlight') }} /><hr style={{ border: 0, borderTop: '1px solid var(--line)', margin: 0 }} />
+      <Toggle label="Задние фонари" on={c.taillights} onChange={taillights => { set({ taillights }); if (taillights) setView('taillight') }} />
     </div>
   )
   if (sec === 'aero') return (<>
