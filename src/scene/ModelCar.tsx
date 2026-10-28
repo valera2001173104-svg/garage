@@ -133,13 +133,14 @@ export default function ModelCar() {
     const h = m.byName['Headlight'], t = m.byName['Brakelight']
     if (h) h.emissiveIntensity = lights.current.h * 10 * (1 - fx.lights * 0.3)
     if (t) t.emissiveIntensity = lights.current.t * 2.2
-    spots.current.forEach(s => s && (s.intensity = lights.current.h * (cfg.env === 'night' ? 90 : 25)))
+    spots.current.forEach(s => s && (s.intensity = lights.current.h * (cfg.env === 'night' ? 80 : 25)))
   })
 
   const carbon = useMemo(() => new THREE.MeshStandardMaterial({ color: '#111315', roughness: 0.35, metalness: 0.6 }), [])
   useEffect(() => () => carbon.dispose(), [carbon])
   const sides = [1, -1] as const
   const { front, rear, hw, spots: sp } = m
+  const beams = useMemo(() => [1, -1].map(s => { const o = new THREE.Object3D(); o.position.set(front + 8, 0, s * 0.8); return o }), [front])
   const midX = (front + rear) / 2
   return (
     <group>
@@ -150,9 +151,10 @@ export default function ModelCar() {
       ))}
 
       {sides.map(s => (
-        <spotLight key={s} ref={el => { if (el) spots.current[s > 0 ? 0 : 1] = el }} position={[front - 0.25, 0.7, s * 0.6]} angle={0.5} penumbra={0.8} distance={14} color="#e6f1ff" intensity={0}
-          target-position={[front + 8, 0, s * 0.8]} />
+        <spotLight key={s} ref={el => { if (el) { const i = s > 0 ? 0 : 1; spots.current[i] = el; el.target = beams[i] } }} position={[front - 0.25, 0.7, s * 0.6]} angle={0.5} penumbra={0.8} distance={14} color="#e6f1ff" intensity={0} />
       ))}
+      {/* a spot light aims at its target object, which must live in the scene (otherwise it points at the origin = the car itself) */}
+      {beams.map((b, i) => <primitive key={i} object={b} />)}
 
       {/* aero — separate objects placed from the model bounds */}
       {cfg.splitter && <mesh position={[front - 0.3, 0.08, 0]} material={carbon}><boxGeometry args={[0.36, 0.03, hw * 1.45]} /></mesh>}

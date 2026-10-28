@@ -48,7 +48,10 @@ export function Studio() {
   useEffect(() => () => stripMats.forEach(m => m.dispose()), [stripMats])
   useFrame(() => {
     const k = fx.lights * E.strips
-    stripMats.forEach(m => m.color.setRGB(0.9 * k * 1.1, 0.96 * k * 1.1, 1.0 * k * 1.1))
+    // dark theme: dimmer than the env lights on purpose (full white in the mirror floor reads as road markings);
+    // light theme: bright, so the reflection melts into the pale floor instead of showing as a grey streak
+    const f = env === 'night' ? 0.3 : theme === 'light' ? 1.2 : 0.5
+    stripMats.forEach(m => m.color.setRGB(0.9 * k * f, 0.96 * k * f, 1.0 * k * f))
   })
 
   return (
@@ -57,6 +60,11 @@ export function Studio() {
       <fog attach="fog" args={[bg, 14, 34]} />
       <Environment key={env + bgMode + q} resolution={q < 1 ? 128 : 256} frames={1}>
         {strips.map((z, i) => <Lightformer key={i} form="rect" intensity={env === 'night' ? 1.2 : 3.2} color={env === 'day' ? '#fff3df' : '#dce9ff'} position={[0, 5, z]} rotation-x={Math.PI / 2} scale={[14, 1.4, 1]} />)}
+        {/* long side softboxes: give the flanks the classic car-photography highlight bands */}
+        {[1, -1].map(s => <Lightformer key={'side' + s} form="rect" intensity={env === 'day' ? 2.4 : env === 'night' ? 0.55 : 1.5} color={env === 'day' ? '#fff3df' : '#e4eeff'} position={[0, 1.7, s * 8]} rotation-y={s > 0 ? Math.PI : 0} scale={[16, 1.5, 1]} />)}
+        {[1, -1].map(s => <Lightformer key={'low' + s} form="rect" intensity={env === 'night' ? 0.2 : 0.55} color="#cfdcf5" position={[0, 0.5, s * 8]} rotation-y={s > 0 ? Math.PI : 0} scale={[16, 0.6, 1]} />)}
+        {/* broad dim ceiling: keeps metal and dark paint from turning pitch black between the strips */}
+        <Lightformer form="rect" intensity={env === 'night' ? 0.12 : env === 'day' ? 0.5 : 0.45} position={[0, 8, 0]} rotation-x={Math.PI / 2} scale={[26, 26, 1]} color="#cfdcf5" />
         <Lightformer form="rect" intensity={env === 'day' ? 4 : 1.1} position={[-9, 2.5, 0]} rotation-y={Math.PI / 2} scale={[10, 3, 1]} color={env === 'day' ? '#fff0d8' : '#c9dcff'} />
         <Lightformer form="rect" intensity={env === 'night' ? 2.2 : 0.9} position={[9, 1.5, -3]} rotation-y={-Math.PI / 2} scale={[8, 0.6, 1]} color="#4FE0C0" />
         {env === 'day' && <Lightformer form="rect" intensity={1.8} position={[0, 9, 0]} rotation-x={Math.PI / 2} scale={[24, 24, 1]} color="#dbe8ff" />}

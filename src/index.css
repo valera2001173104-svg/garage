@@ -96,7 +96,7 @@ textarea.input { height: 84px; padding: 10px 12px; resize: none; }
 .note.err { background: color-mix(in srgb, var(--danger) 14%, transparent); color: var(--text); }
 
 /* ───────── shell ───────── */
-.top { position: absolute; left: 0; right: 0; top: 0; height: calc(var(--top) + var(--safe-t)); padding: var(--safe-t) 12px 0 16px; display: flex; align-items: center; gap: 8px; background: color-mix(in srgb, var(--bg) 90%, transparent); border-bottom: 1px solid var(--line); z-index: 20; }
+.top { position: absolute; left: 0; right: 0; top: 0; height: calc(var(--top) + var(--safe-t)); padding: var(--safe-t) 12px 0 16px; display: flex; align-items: center; gap: 8px; background: color-mix(in srgb, var(--bg) 97%, transparent); border-bottom: 1px solid var(--line); z-index: 20; }
 .brand { font-weight: 700; letter-spacing: .18em; font-size: 15px; margin-right: 20px; display: flex; align-items: center; gap: 10px; }
 .brand::before { content: ''; width: 14px; height: 14px; border: 2px solid var(--text); border-right: 0; border-bottom: 0; }
 .nav { display: flex; align-self: stretch; }
