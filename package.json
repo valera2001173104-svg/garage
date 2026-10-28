@@ -1,0 +1,40 @@
+{
+  "name": "garage",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "server": "node --env-file-if-exists=server/.env server/index.js",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host",
+    "typecheck": "tsc --noEmit",
+    "models": "gltf-transform optimize models-src/CarConcept.glb public/models/car.glb --compress meshopt --texture-compress webp --texture-size 2048 --flatten false --join false --instance false --palette false --simplify false && gltf-transform optimize models-src/CarConcept.glb public/models/car-mobile.glb --compress meshopt --texture-compress webp --texture-size 1024 --flatten false --join false --instance false --palette false --simplify false",
+    "deploy": "bash scripts/deploy-pages.sh",
+    "seg:assets": "cp node_modules/@mediapipe/tasks-vision/wasm/vision_wasm_internal.* node_modules/@mediapipe/tasks-vision/wasm/vision_wasm_nosimd_internal.* public/mediapipe/"
+  },
+  "dependencies": {
+    "@mediapipe/tasks-vision": "^1.2.0",
+    "@react-three/drei": "^10.7.9",
+    "@react-three/fiber": "^9.8.2",
+    "compression": "^1.8.2",
+    "express": "^5.3.0",
+    "gsap": "^3.15.0",
+    "multer": "^2.5.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "three": "^0.186.1",
+    "zustand": "^5.0.16"
+  },
+  "devDependencies": {
+    "@gltf-transform/cli": "^4.5.1",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/three": "^0.186.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.5"
+  }
+}

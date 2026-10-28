@@ -1,0 +1,60 @@
+# GARAGE — Built, not bought.
+
+Interactive car studio: **3D GARAGE** (configurator) + **GARAGE SCAN** (photo tuning) + MY GARAGE + PHOTO MODE.
+
+```bash
+npm install
+npm run dev        # http://localhost:5173
+npm run server     # API on :8787 (AI / 3D providers; optional)
+npm run build && npm run server   # production: server also serves dist/
+```
+
+## Research
+`research/fixes.md` — what 2 099 public App Store reviews of competitors (3DTuning, Cartomizer, AI tuning apps…) complain about and how GARAGE answers it. App Store only; sources and limits are stated there.
+
+## UX highlights
+Undo/Redo (Ctrl+Z / Ctrl+Shift+Z), change history, autosave (config + photo session), hold-to-compare, dark/light theme, adaptive 3D quality (Auto/High/Medium/Low), mobile bottom sheet with drag gestures, keyboard-accessible controls.
+
+## What really works
+- Cinematic intro (GSAP, skippable, `prefers-reduced-motion`), idle camera orbit (toggle in Light).
+- 3D scene (R3F): paint colour / metallic / gloss / matte with animated change, 5 wheel designs + colours (animated swap, camera focus),
+  ride height + Street/Sport/Show, headlights (real spot lights) / tail lights, Studio/Day/Night, spoiler / splitter / skirts, camera presets.
+- GARAGE SCAN: JPG/PNG/WebP upload (gallery, camera, drag&drop, magic-byte validation), manual body selection (colour wand, brush, eraser,
+  exclude dark zones, invert), recolour keeping highlights/shadows, hue/sat/brightness/strength, wheel overlay with manual fit,
+  BEFORE/AFTER/slider, undo, reset, PNG export, save to MY GARAGE.
+- Window tint (none / 70% / 35% / 5% light passing, with the RU 70% front-glass rule shown) — applied to all glass of the model.
+- Stripes (twin / wide / side band, 8 colours): drawn by a shader patch on the model's paint materials (`src/scene/livery.ts`) in the car's own frame,
+  so they follow the hood, roof and body without textures. The side band is an approximation: it uses the surface normal and a height band.
+- Share a build as a link: the config is encoded in the URL fragment (`#build=1.<base64url JSON>`, `src/lib/share.ts`), never sent to a server.
+  Every field from a link is validated; the visitor's own build stays one Undo away. Phones use the native share sheet, desktop copies the link.
+- Lighthouse (mobile, production build): Accessibility 100, Best Practices 100, SEO 100. Pinch-zoom is allowed; the skip link targets `#main` on every screen.
+- Compare two saved 3D projects side by side in MY GARAGE (previews + a table where only the differences are highlighted).
+- MY GARAGE: IndexedDB (open / duplicate / delete, previews). PHOTO MODE: hide UI, angles, lighting, background, PNG export.
+
+## Run, build, publish
+```bash
+npm install
+npm run dev        # http://localhost:5173 (Vite)
+npm run server     # http://localhost:8787, serves dist/ + the optional AI/3D provider API
+npm run build
+npm run deploy     # builds for GitHub Pages and pushes the gh-pages branch
+```
+**GitHub Pages is static hosting:** everything works (3D, photo editor, projects, share links, offline install), but `/api/*` does not exist there,
+so AI TUNING and CREATE 3D show “Требуется настройка AI” instead of faking results. To use them, run `npm run server` with `server/.env`
+(see `server/.env.example`) on any Node host.
+
+## Honest limits
+- The car is **Car Concept** (Khronos sample asset, CC BY 4.0 — attribution shown in the UI, see `public/models/README.md`). Shipped compressed (meshopt geometry + WebP textures, `npm run models` from `models-src/`):
+  `car.glb` 2.8 MB (2048px textures) for desktop, `car-mobile.glb` 2.6 MB (1024px, ~17 MB less VRAM) for weak devices; the original was 11.8 MB.
+  The download streams with real byte progress and starts at boot, in parallel with the 3D code. A procedural car is kept as automatic fallback. Bumpers/bodykits are not offered:
+  the model has no part variants. Spoiler / splitter / skirts are separate simple meshes placed from the model bounds.
+- Auto body selection in GARAGE SCAN: MediaPipe Image Segmenter + DeepLabV3 (Apache-2.0), self-hosted in `public/mediapipe` and
+  `public/models/seg` (~7 MB over the network, loaded only when «Авто» is pressed, runs on-device). It finds the car, keeps the largest one,
+  drops glass/tyres by darkness; light rims and headlights may stay selected and are fixed with the eraser. Tested on one real photo (white sedan).
+  Restore assets after a clean install with `npm run seg:assets`.
+- Per-zone colours in 3D: body, roof & inserts (`Paint 2`), brake calipers (`Brake` + catalogue wheels), interior accents (`Interior 3`); null = factory colour.
+- Wheel swap on photos is a 2D overlay, not generative. AI TUNING needs `server/.env` (`STABILITY_API_KEY`, Stability AI inpaint);
+  without it the UI shows “Требуется настройка AI”. Not tested with a live key.
+- CREATE 3D: provider interface in `server/providers/types.js`; **no provider is bundled** — the screen reports it as not configured.
+- Not tested on a real iPhone. Checked in Chrome emulation (390×844 @3x, 4× CPU, Slow 4G): car visible in ~15 s (was ~36 s), 60 fps,
+  auto quality capped at Medium on phones. `npm run server` serves `dist/` with gzip and correct caching.

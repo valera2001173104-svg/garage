@@ -1,0 +1,8 @@
+node_modules
+dist
+server/.env
+.DS_Store
+*.log
+.claude/
+# raw third-party review text stays local; the analysis is in research/fixes.md
+research/reviews_*.csv
