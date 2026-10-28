@@ -24,4 +24,5 @@ echo "→ publish to gh-pages"
   git remote add origin "$REMOTE"
   git push -q -f origin gh-pages
 )
-echo "✓ pushed. Site: https://$(gh api user -q .login).github.io/$NAME/"
+OWNER=$(echo "$REMOTE" | sed -E 's#.*github\.com[:/]([^/]+)/.*#\1#')
+echo "✓ pushed. Site: https://$OWNER.github.io/$NAME/ (GitHub rebuilds it in about a minute)"
