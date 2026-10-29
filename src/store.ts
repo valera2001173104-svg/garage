@@ -92,6 +92,9 @@ type S = {
   modelLoad: { state: 'idle' | 'loading' | 'parsing' | 'ready' | 'error'; loaded: number; total: number; error?: string }
   capture: ((o?: { width?: number; type?: string; q?: number }) => Promise<Blob | null>) | null
   setCapture: (f: S['capture']) => void
+  /** records one full camera orbit as a video; resolves with the file (or null when the browser cannot record) */
+  spin: ((o: { seconds: number }) => Promise<Blob | null>) | null
+  setSpin: (f: S['spin']) => void
 }
 
 const mq = typeof window !== 'undefined' ? window.matchMedia('(prefers-reduced-motion: reduce)') : null
@@ -150,7 +153,9 @@ export const useGarage = create<S>((set, get) => ({
   say: m => { set({ toast: m }); if (m) setTimeout(() => get().toast === m && set({ toast: null }), 3200) },
   modelLoad: { state: 'idle', loaded: 0, total: 0 },
   capture: null,
-  setCapture: capture => set({ capture })
+  setCapture: capture => set({ capture }),
+  spin: null,
+  setSpin: spin => set({ spin })
 }))
 mq?.addEventListener?.('change', e => useGarage.setState({ reduced: e.matches }))
 

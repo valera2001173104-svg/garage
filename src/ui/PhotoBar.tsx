@@ -20,6 +20,9 @@ export default function PhotoBar() {
   const flash = useRef<HTMLDivElement>(null)
   const [busy, setBusy] = useState(false)
   const [res, setRes] = useState(mobile ? '1920' : '2560')
+  const spin = useGarage(s => s.spin)
+  const [secs, setSecs] = useState('8')
+  const [left, setLeft] = useState(0)
   const [fmt, setFmt] = useState<(typeof FMT)[number]['id']>('png')
 
   const cut = photoBg === 'cutout'
@@ -33,6 +36,22 @@ export default function PhotoBar() {
     setBusy(false)
     if (b) { downloadBlob(b, `garage-photo-${Date.now()}.${type === 'jpeg' ? 'jpg' : type}`); say('Снимок сохранён') } else say('Не удалось получить снимок')
   }
+  /** one smooth 360° orbit around the car, recorded straight from the 3D canvas (no UI in the video) */
+  const record = async () => {
+    if (!spin || left) return
+    const n = +secs
+    setLeft(n); const t = setInterval(() => setLeft(l => Math.max(0, l - 1)), 1000)
+    const b = await spin({ seconds: n }); clearInterval(t); setLeft(0)
+    if (!b) return say('Этот браузер не умеет записывать видео с 3D-сцены')
+    downloadBlob(b, `garage-360-${Date.now()}.${b.type.includes('mp4') ? 'mp4' : 'webm'}`)
+    say(cut ? 'Видео сохранено. Прозрачность видео не хранит: фон будет чёрным' : 'Видео-облёт сохранён')
+  }
+  const turn = (
+    <>
+      <Seg label="Длительность облёта" value={secs} onPick={setSecs} items={[{ id: '5', name: '5 с' }, { id: '8', name: '8 с' }, { id: '12', name: '12 с' }]} />
+      <button className="btn wide" onClick={record} disabled={!spin || left > 0}><Ic n="camera" />{left ? `Запись… ${left} с` : 'Видео-облёт 360°'}</button>
+    </>
+  )
   const scenes = <Seg label="Сцена" value={env} onPick={e => set({ env: e })} items={[{ id: 'studio', name: 'Студия' }, { id: 'day', name: 'День' }, { id: 'night', name: 'Ночь' }]} />
   const bgs = (<>
     <Seg label="Фон" value={cut ? '' : photoBg} onPick={setPhotoBg} items={[{ id: 'garage', name: 'Гараж' }, { id: 'void', name: 'Тёмный' }, { id: 'light', name: 'Светлый' }]} />
@@ -53,6 +72,7 @@ export default function PhotoBar() {
         {mobile ? (
           <div className="floating photo-bar" style={{ position: 'absolute', left: 8, right: 8, bottom: 10, flexDirection: 'column', alignItems: 'stretch', gap: 8, padding: 10 }}>
             {scenes}{bgs}
+            {turn}
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <div style={{ flex: 1 }}><Seg label="Разрешение" value={res} onPick={setRes} items={RES} /></div>
               <button className="shutter" aria-label="Сделать снимок" disabled={busy} onClick={shoot} />
@@ -74,6 +94,7 @@ export default function PhotoBar() {
               {cut && <div className="note">Фон прозрачный: снимок сохранится как PNG или WebP (JPG не хранит прозрачность).</div>}
               <button className="shutter" style={{ alignSelf: 'center' }} aria-label="Сделать снимок" disabled={busy} onClick={shoot} />
               <div className="muted" style={{ textAlign: 'center', fontSize: 12 }}>Сделать снимок</div>
+              <Field label="Видео-облёт">{turn}</Field>
               <button className="btn ghost wide" onClick={() => setUiHidden(true)}><Ic n="eye" />Скрыть интерфейс (H)</button>
             </div>
           </aside>

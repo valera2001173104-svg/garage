@@ -9,6 +9,9 @@ import { canvasToBlob } from '../lib/db'
 import { fx } from './fx'
 
 const T = new THREE.Vector3(0, 0.6, 0)
+/** while a 360° video is recorded the camera orbits at a fixed angular speed (drei passes the frame delta, so one orbit = `T` seconds) */
+const spinState = { on: false, T: 8 }
+const VIDEO_TYPES = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm']
 /** distance multiplier so a portrait screen sees the same horizontal span as a square one (FOV is vertical) */
 const fitK = (asp: number) => Math.max(1, 0.95 / asp)
 export const VIEWS: Record<Exclude<ViewId, 'reset'>, { p: [number, number, number]; t: [number, number, number] }> = {
@@ -31,7 +34,7 @@ export function Rig() {
   const screen = useGarage(s => s.screen)
   const idle = useGarage(s => s.idleOrbit)
   const reduced = useGarage(s => s.reduced)
-  const setCapture = useGarage(s => s.setCapture)
+  const setCapture = useGarage(s => s.setCapture), setSpin = useGarage(s => s.setSpin)
   const insets = useGarage(s => s.insets)
   const off = useRef({ x: 0, y: 0 })
   const last = useRef(performance.now())
@@ -106,11 +109,33 @@ export function Rig() {
     return () => setCapture(null)
   }, [gl, scene, camera, setCapture])
 
+  useEffect(() => {
+    setSpin(async ({ seconds }) => {
+      const el = gl.domElement
+      const type = typeof MediaRecorder !== 'undefined' ? VIDEO_TYPES.find(t => MediaRecorder.isTypeSupported(t)) : undefined
+      if (!type || !el.captureStream || spinState.on) return null
+      const rec = new MediaRecorder(el.captureStream(30), { mimeType: type, videoBitsPerSecond: 10_000_000 })
+      const chunks: Blob[] = []
+      rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data) }
+      const done = new Promise<Blob>(res => { rec.onstop = () => res(new Blob(chunks, { type: type.split(';')[0] })) })
+      const c = ctl.current
+      spinState.T = seconds; spinState.on = true
+      rec.start(250)
+      await new Promise(r => setTimeout(r, seconds * 1000))
+      rec.stop()
+      spinState.on = false
+      if (c) c.autoRotate = false
+      return done
+    })
+    return () => setSpin(null)
+  }, [gl, setSpin])
+
   useFrame(() => {
     const cam = camera as THREE.PerspectiveCamera
-    if (Math.abs(off.current.x) > 0.5 || Math.abs(off.current.y) > 0.5) { cam.setViewOffset(size.width, size.height, -off.current.x, -off.current.y, size.width, size.height) }
+    if (!spinState.on && (Math.abs(off.current.x) > 0.5 || Math.abs(off.current.y) > 0.5)) { cam.setViewOffset(size.width, size.height, -off.current.x, -off.current.y, size.width, size.height) }
     else if (cam.view?.enabled) { cam.clearViewOffset() }
     const c = ctl.current; if (!c) return
+    if (spinState.on) { c.autoRotate = true; c.autoRotateSpeed = 60 / spinState.T; return }
     const inactive = performance.now() - last.current > 4500
     c.autoRotate = idle && !reduced && inactive && (screen === 'garage' || screen === 'intro') && !tween.current?.isActive()
     c.autoRotateSpeed = 0.45
