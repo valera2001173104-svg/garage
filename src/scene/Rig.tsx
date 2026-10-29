@@ -114,6 +114,9 @@ export function Rig() {
       const el = gl.domElement
       const type = typeof MediaRecorder !== 'undefined' ? VIDEO_TYPES.find(t => MediaRecorder.isTypeSupported(t)) : undefined
       if (!type || !el.captureStream || spinState.on) return null
+      // a retina or phone screen would record 3-4K frames: cap the width so the file stays a sensible size and encodes in real time
+      const pr = gl.getPixelRatio()
+      gl.setPixelRatio(Math.min(pr, 1920 / Math.max(1, el.clientWidth)))
       const rec = new MediaRecorder(el.captureStream(30), { mimeType: type, videoBitsPerSecond: 10_000_000 })
       const chunks: Blob[] = []
       rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data) }
@@ -125,6 +128,7 @@ export function Rig() {
       rec.stop()
       spinState.on = false
       if (c) c.autoRotate = false
+      gl.setPixelRatio(pr)
       return done
     })
     return () => setSpin(null)

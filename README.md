@@ -1,5 +1,8 @@
 # GARAGE — Built, not bought.
 
+![Configurator: wheel catalogue, aero kit, paint](docs/configurator.jpg)
+![Photo mode with a transparent background](docs/photo-cutout.jpg)
+
 Interactive car studio: **3D GARAGE** (configurator) + **GARAGE SCAN** (photo tuning) + MY GARAGE + PHOTO MODE.
 
 ```bash
@@ -35,7 +38,7 @@ Undo/Redo (Ctrl+Z / Ctrl+Shift+Z), change history, autosave (config + photo sess
 - GARAGE SCAN wheels: click the middle of a wheel and the frame fits itself (`fitWheel` in `src/scan/engine.ts`: rays find the tyre, an ellipse is fitted; black rims on black tyres use the outer tyre edge × 0.74). If the photo is ambiguous it says so and leaves a default frame to adjust by hand. The overlay matches the photo's brightness and casts a soft contact shadow. On a night shot with black rims the fit lands on the wheel but is a few percent off — drag the white handles.
 - GARAGE SCAN extras: «Сгладить края» cleans the selection border; «до / после» exports both images in one PNG.
 - PHOTO MODE «Прозрачный фон»: the studio, floor and fog are removed and the PNG/WebP keeps an alpha channel (a soft shadow blob grounds the car). JPG cannot hold transparency, so it falls back to PNG. Checked: a 2560×1528 PNG, 87% fully transparent pixels.
-- PHOTO MODE «Видео-облёт 360°» (5 / 8 / 12 s): the camera makes exactly one orbit and the 3D canvas is recorded with `MediaRecorder` (MP4 where the browser can, otherwise WebM; no interface in the picture, 10 Mbit/s). Checked in Chrome: a 4.99 s MP4, 2880×1720, plays and is not black. Video cannot be transparent (the background is black in «Прозрачный фон»). Not tested in Safari or on a phone — the file size follows the screen's pixel density.
+- PHOTO MODE «Видео-облёт 360°» (5 / 8 / 12 s): the camera makes exactly one orbit and the 3D canvas is recorded with `MediaRecorder` (MP4 where the browser can, otherwise WebM; no interface in the picture, 10 Mbit/s, resolution capped near 2K). Checked in Chrome: a 4.8 s MP4, 2160×1290, plays and is not black. Video cannot be transparent (the background is black in «Прозрачный фон»). Not tested in Safari or on a phone — the file size follows the screen's pixel density.
 - Window tint (none / 70% / 35% / 5% light passing, with the RU 70% front-glass rule shown) — applied to all glass of the model.
 - Stripes (twin / wide / side band, 8 colours): drawn by a shader patch on the model's paint materials (`src/scene/livery.ts`) in the car's own frame,
   so they follow the hood, roof and body without textures. The side band is an approximation: it uses the surface normal and a height band.
