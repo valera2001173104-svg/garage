@@ -53,6 +53,7 @@ Undo/Redo (Ctrl+Z / Ctrl+Shift+Z), change history, autosave (config + photo sess
 npm install
 npm run dev        # http://localhost:5173 (Vite)
 npm run server     # http://localhost:8787, serves dist/ + the optional AI/3D provider API
+npm test           # 18 tests: share links, wheel/car catalogue, wheel auto-fit, recolour (Vitest)
 npm run build
 npm run deploy     # builds for GitHub Pages and pushes the gh-pages branch
 ```

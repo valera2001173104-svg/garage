@@ -9,6 +9,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "models": "gltf-transform optimize models-src/CarConcept.glb public/models/car.glb --compress meshopt --texture-compress webp --texture-size 2048 --flatten false --join false --instance false --palette false --simplify false && gltf-transform optimize models-src/CarConcept.glb public/models/car-mobile.glb --compress meshopt --texture-compress webp --texture-size 1024 --flatten false --join false --instance false --palette false --simplify false",
     "deploy": "bash scripts/deploy-pages.sh",
     "seg:assets": "cp node_modules/@mediapipe/tasks-vision/wasm/vision_wasm_internal.* node_modules/@mediapipe/tasks-vision/wasm/vision_wasm_nosimd_internal.* public/mediapipe/"
@@ -35,6 +36,7 @@
     "@vitejs/plugin-react": "^6.1.2",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.9.3",
-    "vite": "^8.3.5"
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
   }
 }
