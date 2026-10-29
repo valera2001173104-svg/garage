@@ -9,6 +9,7 @@ import { Rig } from './Rig'
 import { loadModel } from './modelLoader'
 
 const ModelCar = lazy(() => import('./ModelCar'))
+const LowPolyCar = lazy(() => import('./LowPolyCar'))
 
 // no-op if App already started it (e.g. user arrived via another screen)
 loadModel(qualityLevel(useGarage.getState()) === 2 ? 2 : 1)
@@ -24,6 +25,7 @@ class ModelBoundary extends Component<{ children: ReactNode }, { failed: boolean
 export default function GarageCanvas() {
   const q = useGarage(qualityLevel)
   const auto = useGarage(s => s.quality === 'auto')
+  const car = useGarage(s => s.config.car ?? 'concept')
   const step = (d: 1 | -1) => { const s = useGarage.getState(), p = Math.max(0, Math.min(s.perfMax, s.perf + d)) as 0 | 1 | 2; if (p !== s.perf) s.setPerf(p) }
   return (
     <Canvas
@@ -36,7 +38,7 @@ export default function GarageCanvas() {
       {auto && <PerformanceMonitor flipflops={3} onDecline={() => step(-1)} onIncline={() => step(1)} />}
       <Suspense fallback={null}>
         <Studio />
-        <ModelBoundary><ModelCar /></ModelBoundary>
+        <ModelBoundary>{car === 'concept' ? <ModelCar /> : <LowPolyCar key={car} />}</ModelBoundary>
       </Suspense>
       <Rig />
     </Canvas>

@@ -1,4 +1,4 @@
-import { BODY_COLORS, CALIPER_COLORS, INTERIOR_COLORS, LIVERIES, LIVERY_COLORS, SUSPENSION, WHEELS, WHEEL_COLORS } from './catalog'
+import { CARS, BODY_COLORS, CALIPER_COLORS, INTERIOR_COLORS, LIVERIES, LIVERY_COLORS, SUSPENSION, WHEELS, WHEEL_COLORS } from './catalog'
 import type { CarConfig } from './db'
 
 const eq = (a: string, b: string) => a.toLowerCase() === b.toLowerCase()
@@ -9,6 +9,7 @@ export function configRows(c: CarConfig): [string, string][] {
   const tint = c.tint ?? 0
   return [
     ['Цвет', `${named(BODY_COLORS, c.color)}, ${{ metallic: 'металлик', gloss: 'глянец', matte: 'матовое' }[c.finish]}`],
+    ['Машина', CARS.find(x => x.id === (c.car ?? 'concept'))?.name ?? 'Car Concept'],
     ['Диски', c.wheel === 'stock' ? 'Серийные' : `${WHEELS.find(w => w.id === c.wheel)?.name ?? ''}, ${named(WHEEL_COLORS, c.wheelColor)}`],
     ['Посадка', SUSPENSION.find(s => Math.abs(s.v - c.rideHeight) < 0.01)?.name ?? `${Math.round(95 + c.rideHeight * 90)} мм`],
     ['Крыша', c.accent ? named(BODY_COLORS, c.accent) : 'Заводская'],

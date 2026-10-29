@@ -23,6 +23,17 @@ export const WHEELS = [
   { id: 'split', name: 'Split Ten' }, { id: 'disc', name: 'Aero Disc' },
   ...RIM_SPECS.map(r => ({ id: r.id, name: r.name })), ...DISC_SPECS.map(r => ({ id: r.id, name: r.name }))
 ]
+/** Car Concept is the detailed hero model; the rest are Kenney's CC0 Car Kit (low-poly, one palette texture, no part variants).
+ *  paint = palette cell (column, row of an 8x4 grid) that holds the body colour; it is repainted to recolour the car. */
+export const CARS = [
+  { id: 'concept', name: 'Car Concept', credit: 'Khronos sample · CC BY 4.0', paint: null },
+  { id: 'sedan-sports', name: 'Sedan Sport', credit: 'Kenney Car Kit · CC0', paint: [6, 1] },
+  { id: 'hatchback-sports', name: 'Hot Hatch', credit: 'Kenney Car Kit · CC0', paint: [3, 1] },
+  { id: 'sedan', name: 'Sedan', credit: 'Kenney Car Kit · CC0', paint: [6, 1] },
+  { id: 'suv-luxury', name: 'Luxury SUV', credit: 'Kenney Car Kit · CC0', paint: [4, 1] },
+  { id: 'race', name: 'Racer', credit: 'Kenney Car Kit · CC0', paint: [6, 1] },
+  { id: 'race-future', name: 'Future Racer', credit: 'Kenney Car Kit · CC0', paint: [7, 1] }
+] as const
 export const SUSPENSION = [
   { id: 'show', name: 'Шоу', v: 0 }, { id: 'sport', name: 'Спорт', v: 0.28 }, { id: 'street', name: 'Комфорт', v: 0.5 }
 ]
@@ -31,7 +42,7 @@ export const VIEWS = [
 ] as const
 export const DEFAULT_CONFIG = {
   color: '#3b4249', finish: 'metallic', wheel: 'stock', wheelColor: '#2a2e32', rideHeight: 0.5,
-  headlights: true, taillights: true, spoiler: 'none', splitter: false, skirts: false, canards: false, diffuser: 'none', env: 'studio', accent: null, caliper: null, interior: null, tint: 0, livery: 'none', liveryColor: '#f2f2ee'
+  car: 'concept', headlights: true, taillights: true, spoiler: 'none', splitter: false, skirts: false, canards: false, diffuser: 'none', env: 'studio', accent: null, caliper: null, interior: null, tint: 0, livery: 'none', liveryColor: '#f2f2ee'
 } as const
 export const LIVERIES = [
   { id: 'none', name: 'Нет' }, { id: 'twin', name: 'Двойные' }, { id: 'wide', name: 'Широкая' }, { id: 'side', name: 'Боковая' }

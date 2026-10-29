@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { useGarage } from '../store'
-import { BODY_COLORS, CALIPER_COLORS, INTERIOR_COLORS, LIVERIES, LIVERY_COLORS, SUSPENSION, TINTS, VIEWS, WHEELS, WHEEL_COLORS } from '../lib/catalog'
+import { CARS, BODY_COLORS, CALIPER_COLORS, INTERIOR_COLORS, LIVERIES, LIVERY_COLORS, SUSPENSION, TINTS, VIEWS, WHEELS, WHEEL_COLORS } from '../lib/catalog'
 import { shareBuild } from '../lib/share'
 import { saveProject, uid, type CarConfig, type Project } from '../lib/db'
 import { useMobile } from '../lib/useMobile'
@@ -34,6 +34,15 @@ function Controls({ sec }: { sec: Sec }) {
   const c = useGarage(s => s.config), set = useGarage(s => s.set), setView = useGarage(s => s.setView)
   const recents = useGarage(s => s.recents)
   const idle = useGarage(s => s.idleOrbit), setIdle = useGarage(s => s.setIdleOrbit)
+  if ((c.car ?? 'concept') !== 'concept') {
+    // Kenney low-poly cars: one palette texture, so only the body colour and finish are real swaps here
+    if (sec !== 'look') return <div className="note">У low-poly модели нет отдельных дисков, подвески, света и обвеса, поэтому раздела здесь нет. Всё это есть у Car Concept.</div>
+    return (<>
+      <ColorPicker label="Цвет кузова" items={BODY_COLORS} value={c.color} recents={recents} onPick={color => set({ color })} />
+      <Field label="Покрытие"><Seg label="Покрытие" value={c.finish} onPick={finish => set({ finish })} items={[{ id: 'gloss', name: 'Глянец' }, { id: 'metallic', name: 'Металлик' }, { id: 'matte', name: 'Матовое' }]} /></Field>
+      <div className="note">Это упрощённая low-poly модель: перекрашивается кузов целиком. Стёкла, крыша, салон и полосы доступны у Car Concept.</div>
+    </>)
+  }
   if (sec === 'look') return (<>
     <Field label="Зона"><Seg label="Зона окраски" value={zone} onPick={z => { setZone(z); setView(ZONES.find(x => x.id === z)!.view) }} items={ZONES} /></Field>
     {zone === 'body' ? <>
@@ -98,9 +107,23 @@ function Controls({ sec }: { sec: Sec }) {
   </>)
 }
 
+function CarSelect() {
+  const car = useGarage(s => s.config.car ?? 'concept'), set = useGarage(s => s.set), setView = useGarage(s => s.setView)
+  return (
+    <select className="input" aria-label="Автомобиль" value={car} onChange={e => { set({ car: e.target.value }); setView('three') }} style={{ fontWeight: 700, padding: '6px 8px' }}>
+      {CARS.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
+    </select>
+  )
+}
+
 function Summary() {
   const c = useGarage(s => s.config)
-  const rows: [string, string][] = [
+  const toy = (c.car ?? 'concept') !== 'concept'
+  const rows: [string, string][] = toy ? [
+    ['Машина', CARS.find(x => x.id === c.car)?.name ?? ''],
+    ['Цвет', BODY_COLORS.find(x => x.hex.toLowerCase() === c.color.toLowerCase())?.name ?? c.color.toUpperCase()],
+    ['Покрытие', { gloss: 'Глянец', metallic: 'Металлик', matte: 'Матовое' }[c.finish]]
+  ] : [
     ['Цвет', BODY_COLORS.find(x => x.hex.toLowerCase() === c.color.toLowerCase())?.name ?? c.color.toUpperCase()],
     ['Диски', c.wheel === 'stock' ? 'Серийные' : WHEELS.find(w => w.id === c.wheel)?.name ?? ''],
     ['Посадка', SUSPENSION.find(s => Math.abs(s.v - c.rideHeight) < 0.01)?.name ?? `${Math.round(95 + c.rideHeight * 90)} мм`],
@@ -129,6 +152,7 @@ export default function Configurator() {
   const savedAt = useGarage(s => s.savedAt)
   const compare = useGarage(s => s.compare), setCompare = useGarage(s => s.setCompare)
   const setInsets = useGarage(s => s.setInsets), resetConfig = useGarage(s => s.resetConfig)
+  const config = useGarage(s => s.config)
 
   // mobile bottom sheet: 3 snap points, drag the grip
   const [snap, setSnap] = useState<'peek' | 'half' | 'full'>('half')
@@ -188,7 +212,9 @@ export default function Configurator() {
 
       {!mobile && (
         <aside className="left panel" aria-label="Автомобиль и разделы">
-          <div className="car-card"><span className="label">Автомобиль</span><b>Car Concept</b><span className="muted" style={{ fontSize: 12 }}>Khronos sample · CC BY 4.0</span></div>
+          <div className="car-card"><span className="label">Автомобиль</span>
+            <CarSelect />
+            <span className="muted" style={{ fontSize: 12 }}>{(CARS.find(x => x.id === (config.car ?? 'concept')) ?? CARS[0]).credit}{(config.car ?? 'concept') === 'concept' ? '' : ' · low-poly'}</span></div>
           <button className="btn wide" onClick={() => go('scan')}><Ic n="plus" />Добавить свою машину</button>
           <nav aria-label="Разделы кастомизации" style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 4 }}>
             {SECTIONS.map(s => <button key={s.id} className="sec" aria-current={sec === s.id} onClick={() => { setSec(s.id); if (s.id === 'wheels') setView('wheel') }}><Ic n={s.icon} />{s.name}</button>)}
@@ -229,7 +255,7 @@ export default function Configurator() {
             onPointerDown={gripDown} onPointerMove={gripMove} onPointerUp={gripUp} onPointerCancel={gripUp}
             onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setSnap(snap === 'peek' ? 'half' : 'peek') }} />
           <div className="rhead"><h2>{title}</h2><button className="btn sm" onClick={() => setSaving(true)}>Сохранить</button></div>
-          <div className="rbody" id="main" tabIndex={-1}><Controls sec={sec} /><Summary /></div>
+          <div className="rbody" id="main" tabIndex={-1}><CarSelect /><Controls sec={sec} /><Summary /></div>
         </section>
         <nav className="tabs" aria-label="Разделы кастомизации">
           {SECTIONS.map(s => <button key={s.id} className="tab" aria-current={sec === s.id} onClick={() => { setSec(s.id); if (snap === 'peek') setSnap('half'); if (s.id === 'wheels') setView('wheel') }}><Ic n={s.icon} />{s.short}</button>)}

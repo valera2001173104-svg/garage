@@ -1,6 +1,6 @@
 // Share a build as a link. The whole config lives in the URL fragment (#build=…),
 // which browsers never send to a server, so sharing needs no backend.
-import { DEFAULT_CONFIG, WHEELS } from './catalog'
+import { CARS, DEFAULT_CONFIG, WHEELS } from './catalog'
 import type { CarConfig } from './db'
 
 const KEY = 'build'
@@ -32,6 +32,7 @@ export function parseBuild(hash: string): CarConfig | null {
   return {
     color: hex(raw.color, d.color),
     finish: pick(raw.finish, ['metallic', 'matte', 'gloss'] as const, d.finish),
+    car: pick(raw.car, CARS.map(c => c.id), 'concept'),
     wheel: pick(raw.wheel, WHEELS.map(w => w.id), d.wheel),
     wheelColor: hex(raw.wheelColor, d.wheelColor),
     rideHeight: num(raw.rideHeight, d.rideHeight),

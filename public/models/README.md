@@ -30,3 +30,13 @@ Requirements: ≤ 150k triangles for mobile, textures ≤ 2048², KTX2/Basis or 
 (`gltf-transform optimize`). Place under `public/models/` and load with drei `useGLTF`.
 A single-mesh model (e.g. from photo reconstruction) can be shown and repainted only as a whole —
 wheel / bodykit swapping is unavailable for it, and the UI must not offer it.
+
+
+---
+# Low-poly cars (`lowpoly/`)
+
+`sedan`, `sedan-sports`, `hatchback-sports`, `suv-luxury`, `race`, `race-future` — **Kenney Car Kit 3.1**, © Kenney (www.kenney.nl),
+**Creative Commons Zero (CC0 1.0)**, downloaded from https://kenney.nl/assets/car-kit (licence text kept as `lowpoly/LICENSE-Kenney-CC0.txt`).
+Files are unchanged GLBs from the kit's `GLB format` folder plus its `Textures/colormap.png` palette. CC0 does not require credit; the UI credits Kenney anyway.
+How the app uses them (`src/scene/LowPolyCar.tsx`): the cars have a single material with a palette texture, so the body colour is changed by repainting
+the one palette cell that holds the paint (`CARS[].paint` in `src/lib/catalog.ts`), keeping its gradient. Wheels, lights, glass and aero are not separate swaps there.

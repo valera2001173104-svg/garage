@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { BODY_COLORS, CALIPER_COLORS, DEFAULT_CONFIG, INTERIOR_COLORS, LIVERIES, LIVERY_COLORS, SUSPENSION, WHEELS, WHEEL_COLORS } from './lib/catalog'
+import { CARS, BODY_COLORS, CALIPER_COLORS, DEFAULT_CONFIG, INTERIOR_COLORS, LIVERIES, LIVERY_COLORS, SUSPENSION, WHEELS, WHEEL_COLORS } from './lib/catalog'
 import type { CarConfig, Project } from './lib/db'
 import { parseBuild } from './lib/share'
 
@@ -20,6 +20,7 @@ export function describe(p: Partial<CarConfig>): string {
   if (p.caliper !== undefined) return p.caliper ? `Суппорты: ${hexName(CALIPER_COLORS, p.caliper)}` : 'Суппорты: заводской цвет'
   if (p.interior !== undefined) return p.interior ? `Салон: ${hexName(INTERIOR_COLORS, p.interior)}` : 'Салон: заводской цвет'
   if (p.finish) return `Покрытие: ${{ metallic: 'металлик', gloss: 'глянец', matte: 'матовое' }[p.finish]}`
+  if (p.car) return `Машина: ${CARS.find(c => c.id === p.car)?.name ?? p.car}`
   if (p.wheel) return `Диски: ${WHEELS.find(w => w.id === p.wheel)?.name ?? p.wheel}`
   if (p.wheelColor !== undefined) return `Цвет дисков: ${hexName(WHEEL_COLORS, p.wheelColor)}`
   if (p.rideHeight !== undefined) { const s = SUSPENSION.find(x => Math.abs(x.v - p.rideHeight!) < 0.01); return s ? `Посадка: ${s.name}` : `Клиренс ${Math.round(95 + p.rideHeight * 90)} мм` }

@@ -2,6 +2,8 @@
 export type CarConfig = {
   color: string
   finish: 'metallic' | 'matte' | 'gloss'
+  /** which model is on the stage; missing = the detailed Car Concept */
+  car?: string
   wheel: string
   wheelColor: string
   rideHeight: number // 0 (slammed) .. 1 (raised)
