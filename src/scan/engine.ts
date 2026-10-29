@@ -1,6 +1,7 @@
 // Pure image-processing helpers for GARAGE SCAN (Canvas API, no ML).
 import type { PhotoParams, WheelMark } from '../lib/db'
 import { hexToHsl, hslToHex } from '../lib/color'
+import { DISC_SPECS, RIM_SPECS } from '../lib/rims'
 
 export const DEFAULT_PARAMS: PhotoParams = { hue: 168, sat: 1, light: 0.5, strength: 1, finish: 'metallic', keepHighlights: true, keepShadows: true, tint: '#4FE0C0', wheels: [] }
 
@@ -132,7 +133,8 @@ export function recolor(base: ImageData, mask: Uint8ClampedArray, p: PhotoParams
 
 /* ---------- wheels ---------- */
 export const RIMS = [
-  { id: 'spoke5', name: 'Five Spoke' }, { id: 'mesh', name: 'Mesh' }, { id: 'turbine', name: 'Turbine' }, { id: 'split', name: 'Split Ten' }, { id: 'disc', name: 'Aero Disc' }
+  { id: 'spoke5', name: 'Five Spoke' }, { id: 'mesh', name: 'Mesh' }, { id: 'turbine', name: 'Turbine' }, { id: 'split', name: 'Split Ten' }, { id: 'disc', name: 'Aero Disc' },
+  ...RIM_SPECS.map(r => ({ id: r.id, name: r.name })), ...DISC_SPECS.map(r => ({ id: r.id, name: r.name }))
 ]
 
 function drawRim(g: CanvasRenderingContext2D, design: string, color: string) {
@@ -161,6 +163,19 @@ function drawRim(g: CanvasRenderingContext2D, design: string, color: string) {
     g.beginPath(); g.arc(0, 0, 0.88, 0, 7); g.fill()
     g.fillStyle = 'rgba(0,0,0,.75)'
     for (let i = 0; i < 10; i++) { const a = (i * Math.PI * 2) / 10; g.beginPath(); g.arc(Math.cos(a) * 0.6, Math.sin(a) * 0.6, 0.08, 0, 7); g.fill() }
+  }
+  const rs = RIM_SPECS.find(r => r.id === design)
+  if (rs) {
+    for (const grp of rs.groups) spokes(grp.n, grp.pts.map(([x, r]) => [x, -r]), grp.off ?? 0)
+    g.strokeStyle = grad; g.lineWidth = 0.03; for (const r of rs.rings ?? []) { g.beginPath(); g.arc(0, 0, r, 0, 7); g.stroke() }
+    if (rs.bolts) { g.fillStyle = 'rgba(235,238,240,.9)'; for (let i = 0; i < rs.bolts; i++) { const a = (i / rs.bolts) * Math.PI * 2; g.beginPath(); g.arc(Math.cos(a) * 0.92, Math.sin(a) * 0.92, 0.018, 0, 7); g.fill() } g.fillStyle = grad }
+  }
+  const ds = DISC_SPECS.find(d => d.id === design)
+  if (ds) {
+    g.beginPath(); g.arc(0, 0, 0.88, 0, 7); g.fill()
+    g.fillStyle = 'rgba(0,0,0,.75)'
+    for (let i = 0; i < ds.holes; i++) { const a = (i * Math.PI * 2) / ds.holes; g.beginPath(); g.arc(Math.cos(a) * ds.at, Math.sin(a) * ds.at, ds.hr, 0, 7); g.fill() }
+    g.fillStyle = grad
   }
   // lip, hub, lugs
   g.strokeStyle = grad; g.lineWidth = 0.1; g.beginPath(); g.arc(0, 0, 0.93, 0, 7); g.stroke()

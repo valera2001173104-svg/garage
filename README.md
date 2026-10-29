@@ -29,6 +29,9 @@ Undo/Redo (Ctrl+Z / Ctrl+Shift+Z), change history, autosave (config + photo sess
   the Light section jumps the camera to the headlights / tail lights. Cabin view looks through the glass; glass has its own reflection strength so the interior reads.
   Studio fill lights are neutral (a tinted fill used to colour the roof and floor mats: a configurator must show true colours).
   Note: in three r186 `material.envMapIntensity` is ignored unless the material has its own `envMap`; `src/scene/envBind.ts` binds the scene environment per material.
+- Wheel catalogue: 14 original designs (`src/lib/rims.ts`, shared by the 3D wheel and the photo overlay) built from common archetypes — multi-spoke, twin-spoke, star, blade, Y-spoke, lattice, wide six, fan, classic plate. They are not copies of any manufacturer's wheel.
+- Aero kit (`src/scene/Aero.tsx`): profiled parts instead of boxes — splitter with end plates and struts, front canards, side skirt blades, street/race diffuser with fins, lip / ducktail / GT wing / swan-neck wing with end plates and gurney flap.
+  **Not offered:** real bumpers and alternative bodies. The only car model is one piece, and no licence-clean variants were found, so the app does not pretend to have them.
 - Window tint (none / 70% / 35% / 5% light passing, with the RU 70% front-glass rule shown) — applied to all glass of the model.
 - Stripes (twin / wide / side band, 8 colours): drawn by a shader patch on the model's paint materials (`src/scene/livery.ts`) in the car's own frame,
   so they follow the hood, roof and body without textures. The side band is an approximation: it uses the surface normal and a height band.

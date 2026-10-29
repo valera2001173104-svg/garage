@@ -6,6 +6,7 @@ import gsap from 'gsap'
 import { qualityLevel, useGarage } from '../store'
 import { DEFAULT_CONFIG } from '../lib/catalog'
 import { Wheel, setCaliperColor } from './Wheel'
+import { Aero } from './Aero'
 import { fx } from './fx'
 import { loadModel } from './modelLoader'
 import { bindEnv } from './envBind'
@@ -206,17 +207,8 @@ export default function ModelCar() {
       {/* a spot light aims at its target object, which must live in the scene (otherwise it points at the origin = the car itself) */}
       {beams.map((b, i) => <primitive key={i} object={b} />)}
 
-      {/* aero — separate objects placed from the model bounds */}
-      {cfg.splitter && <mesh position={[front - 0.3, 0.08, 0]} material={carbon}><boxGeometry args={[0.36, 0.03, hw * 1.45]} /></mesh>}
-      {cfg.skirts && sides.map(s => <mesh key={s} position={[midX, 0.2, s * (hw - 0.03)]} material={carbon}><boxGeometry args={[(front - rear) * 0.34, 0.07, 0.06]} /></mesh>)}
-      {cfg.spoiler === 'lip' && <mesh position={[rear + 0.5, 0.9, 0]} rotation-z={0.25} material={carbon}><boxGeometry args={[0.3, 0.025, hw * 1.45]} /></mesh>}
-      {cfg.spoiler === 'wing' && (
-        <group position={[rear + 0.4, 0.82, 0]}>
-          <mesh position={[0, 0.24, 0]} rotation-z={0.08} material={carbon}><boxGeometry args={[0.42, 0.03, hw * 1.85]} /></mesh>
-          {sides.map(s => <mesh key={s} position={[0.02, 0.1, s * 0.55]} material={carbon}><boxGeometry args={[0.05, 0.26, 0.04]} /></mesh>)}
-          {sides.map(s => <mesh key={'e' + s} position={[0, 0.24, s * hw * 0.92]} material={carbon}><boxGeometry args={[0.46, 0.15, 0.02]} /></mesh>)}
-        </group>
-      )}
+      {/* aero kit: profiled parts placed from the model bounds (src/scene/Aero.tsx) */}
+      <Aero cfg={cfg} front={front} rear={rear} hw={hw} mat={carbon} />
     </group>
   )
 }

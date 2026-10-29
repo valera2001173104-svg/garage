@@ -7,9 +7,11 @@ export type CarConfig = {
   rideHeight: number // 0 (slammed) .. 1 (raised)
   headlights: boolean
   taillights: boolean
-  spoiler: 'none' | 'lip' | 'wing'
+  spoiler: 'none' | 'lip' | 'duck' | 'wing' | 'swan'
   splitter: boolean
   skirts: boolean
+  canards?: boolean
+  diffuser?: 'none' | 'street' | 'race'
   env: 'studio' | 'day' | 'night'
   /** per-zone colours; null = factory colour of the model */
   accent?: string | null

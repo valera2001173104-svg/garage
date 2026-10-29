@@ -5,6 +5,7 @@ import gsap from 'gsap'
 import { useFrame } from '@react-three/fiber'
 import { useGarage } from '../store'
 import { bindEnv } from './envBind'
+import { DISC_SPECS, RIM_SPECS } from '../lib/rims'
 
 /**
  * Catalogue wheel assembly, axis = +Z, outer face toward +Z. Everything is procedural (no unlicensed assets):
@@ -51,8 +52,28 @@ function build(design: string): THREE.BufferGeometry {
     // aero ring around the vented holes
     const ring = new THREE.TorusGeometry(0.2, 0.007, 8, 64); ring.translate(0, 0, 0.022); parts.push(ring)
   }
+  const spec = RIM_SPECS.find(r => r.id === design)
+  if (spec) {
+    for (const grp of spec.groups) {
+      radial(ext(poly(grp.pts.map(([x, r]) => [x * R, r * R] as [number, number])), 0.024), grp.n, grp.off ?? 0)
+      // raised centre rib along each plain four-point spoke, like a cast relief line
+      if (grp.pts.length === 4) radial(ext(poly([[-0.007, 0.075], [0.007, 0.075], [0.011, R * 0.8], [-0.011, R * 0.8]]), 0.01, 0.5).translate(0, 0, 0.02), grp.n, grp.off ?? 0)
+    }
+    for (const r of spec.rings ?? []) { const t = new THREE.TorusGeometry(r * R, 0.008, 8, 64); t.translate(0, 0, 0.012); parts.push(t) }
+    if (spec.bolts) {
+      const b = new THREE.CylinderGeometry(0.0065, 0.0065, 0.012, 6).rotateX(Math.PI / 2).translate(R * 0.93, 0, 0.016)
+      for (let i = 0; i < spec.bolts; i++) parts.push(rot(b, (i / spec.bolts) * Math.PI * 2))
+    }
+  }
+  const dsc = DISC_SPECS.find(d => d.id === design)
+  if (dsc) {
+    const s = new THREE.Shape(); s.absarc(0, 0, R - 0.008, 0, Math.PI * 2, false)
+    for (let i = 0; i < dsc.holes; i++) { const a = (i * Math.PI * 2) / dsc.holes, h = new THREE.Path(); h.absarc(Math.cos(a) * dsc.at * R, Math.sin(a) * dsc.at * R, dsc.hr * R, 0, Math.PI * 2, true); s.holes.push(h) }
+    parts.push(ext(s, 0.022))
+    const ring = new THREE.TorusGeometry(R * 0.86, 0.006, 8, 64); ring.translate(0, 0, 0.024); parts.push(ring)
+  }
   const g = mergeGeometries(parts.map(flat))!
-  if (design !== 'disc') { // concave dish: the further from the hub, the closer to the viewer
+  if (design !== 'disc' && !dsc) { // concave dish: the further from the hub, the closer to the viewer
     const p = g.attributes.position
     for (let i = 0; i < p.count; i++) { const r = Math.hypot(p.getX(i), p.getY(i)) / R; p.setZ(i, p.getZ(i) + DISH * r * r) }
     g.computeVertexNormals()

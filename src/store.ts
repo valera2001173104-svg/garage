@@ -25,8 +25,10 @@ export function describe(p: Partial<CarConfig>): string {
   if (p.rideHeight !== undefined) { const s = SUSPENSION.find(x => Math.abs(x.v - p.rideHeight!) < 0.01); return s ? `Посадка: ${s.name}` : `Клиренс ${Math.round(95 + p.rideHeight * 90)} мм` }
   if (p.headlights !== undefined) return p.headlights ? 'Фары включены' : 'Фары выключены'
   if (p.taillights !== undefined) return p.taillights ? 'Фонари включены' : 'Фонари выключены'
-  if (p.spoiler) return `Спойлер: ${{ none: 'нет', lip: 'Lip', wing: 'GT Wing' }[p.spoiler]}`
+  if (p.spoiler) return `Спойлер: ${{ none: 'нет', lip: 'Lip', duck: 'Ducktail', wing: 'GT Wing', swan: 'Swan Neck' }[p.spoiler]}`
   if (p.splitter !== undefined) return p.splitter ? 'Сплиттер установлен' : 'Сплиттер снят'
+  if (p.canards !== undefined) return p.canards ? 'Канарды установлены' : 'Канарды сняты'
+  if (p.diffuser) return `Диффузор: ${{ none: 'нет', street: 'Street', race: 'Race' }[p.diffuser]}`
   if (p.skirts !== undefined) return p.skirts ? 'Пороги установлены' : 'Пороги сняты'
   if (p.livery) return `Полосы: ${LIVERIES.find(l => l.id === p.livery)?.name ?? p.livery}`
   if (p.liveryColor) return `Цвет полос: ${hexName(LIVERY_COLORS, p.liveryColor)}`

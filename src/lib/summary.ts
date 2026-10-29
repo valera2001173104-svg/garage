@@ -16,7 +16,7 @@ export function configRows(c: CarConfig): [string, string][] {
     ['Салон', c.interior ? named(INTERIOR_COLORS, c.interior) : 'Заводской'],
     ['Полосы', (c.livery ?? 'none') === 'none' ? 'Нет' : `${LIVERIES.find(l => l.id === c.livery)?.name}, ${named(LIVERY_COLORS, c.liveryColor ?? '#f2f2ee')}`],
     ['Тонировка', tint > 0.01 ? `${Math.round((1 - tint) * 100)}%` : 'Нет'],
-    ['Обвес', [c.spoiler !== 'none' && 'спойлер', c.splitter && 'сплиттер', c.skirts && 'пороги'].filter(Boolean).join(', ') || 'Нет'],
+    ['Обвес', [c.spoiler !== 'none' && 'спойлер', c.splitter && 'сплиттер', c.canards && 'канарды', c.diffuser && c.diffuser !== 'none' && 'диффузор', c.skirts && 'пороги'].filter(Boolean).join(', ') || 'Нет'],
     ['Свет', [c.headlights && 'фары', c.taillights && 'фонари'].filter(Boolean).join(', ') || 'Выключен'],
     ['Сцена', { studio: 'Студия', day: 'День', night: 'Ночь' }[c.env]]
   ]

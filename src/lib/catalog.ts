@@ -1,3 +1,5 @@
+import { DISC_SPECS, RIM_SPECS } from './rims'
+
 export const BODY_COLORS = [
   { name: 'Pearl White', hex: '#e9e9e4' }, { name: 'Nardo Grey', hex: '#7A7F83' }, { name: 'Gunmetal', hex: '#3b4249' },
   { name: 'Midnight', hex: '#14181d' }, { name: 'Cobalt', hex: '#1f4fc4' }, { name: 'Racing Red', hex: '#c8202a' },
@@ -18,7 +20,8 @@ export const INTERIOR_COLORS = [
 ]
 export const WHEELS = [
   { id: 'stock', name: 'Stock' }, { id: 'spoke5', name: 'Five Spoke' }, { id: 'mesh', name: 'Mesh' }, { id: 'turbine', name: 'Turbine' },
-  { id: 'split', name: 'Split Ten' }, { id: 'disc', name: 'Aero Disc' }
+  { id: 'split', name: 'Split Ten' }, { id: 'disc', name: 'Aero Disc' },
+  ...RIM_SPECS.map(r => ({ id: r.id, name: r.name })), ...DISC_SPECS.map(r => ({ id: r.id, name: r.name }))
 ]
 export const SUSPENSION = [
   { id: 'show', name: 'Шоу', v: 0 }, { id: 'sport', name: 'Спорт', v: 0.28 }, { id: 'street', name: 'Комфорт', v: 0.5 }
@@ -28,7 +31,7 @@ export const VIEWS = [
 ] as const
 export const DEFAULT_CONFIG = {
   color: '#3b4249', finish: 'metallic', wheel: 'stock', wheelColor: '#2a2e32', rideHeight: 0.5,
-  headlights: true, taillights: true, spoiler: 'none', splitter: false, skirts: false, env: 'studio', accent: null, caliper: null, interior: null, tint: 0, livery: 'none', liveryColor: '#f2f2ee'
+  headlights: true, taillights: true, spoiler: 'none', splitter: false, skirts: false, canards: false, diffuser: 'none', env: 'studio', accent: null, caliper: null, interior: null, tint: 0, livery: 'none', liveryColor: '#f2f2ee'
 } as const
 export const LIVERIES = [
   { id: 'none', name: 'Нет' }, { id: 'twin', name: 'Двойные' }, { id: 'wide', name: 'Широкая' }, { id: 'side', name: 'Боковая' }

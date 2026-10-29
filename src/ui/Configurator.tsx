@@ -83,12 +83,14 @@ function Controls({ sec }: { sec: Sec }) {
     </div>
   )
   if (sec === 'aero') return (<>
-    <Field label="Спойлер"><Seg label="Спойлер" value={c.spoiler} onPick={spoiler => { set({ spoiler }); setView('rear') }} items={[{ id: 'none', name: 'Нет' }, { id: 'lip', name: 'Lip' }, { id: 'wing', name: 'GT Wing' }]} /></Field>
+    <Field label="Спойлер"><Seg label="Спойлер" value={c.spoiler} onPick={spoiler => { set({ spoiler }); setView('rear') }} items={[{ id: 'none', name: 'Нет' }, { id: 'lip', name: 'Lip' }, { id: 'duck', name: 'Duck' }, { id: 'wing', name: 'GT' }, { id: 'swan', name: 'Swan' }]} /></Field>
+    <Field label="Диффузор"><Seg label="Диффузор" value={c.diffuser ?? 'none'} onPick={diffuser => { set({ diffuser }); setView('rear') }} items={[{ id: 'none', name: 'Нет' }, { id: 'street', name: 'Street' }, { id: 'race', name: 'Race' }]} /></Field>
     <div>
       <Toggle label="Передний сплиттер" on={c.splitter} onChange={splitter => { set({ splitter }); if (splitter) setView('front') }} /><hr style={{ border: 0, borderTop: '1px solid var(--line)', margin: 0 }} />
+      <Toggle label="Передние канарды" on={!!c.canards} onChange={canards => { set({ canards }); if (canards) setView('front') }} /><hr style={{ border: 0, borderTop: '1px solid var(--line)', margin: 0 }} />
       <Toggle label="Боковые пороги" on={c.skirts} onChange={skirts => { set({ skirts }); if (skirts) setView('side') }} />
     </div>
-    <div className="note">Бамперы и сложный обвес не предлагаются: в этой модели нет вариантов этих деталей.</div>
+    <div className="note">Обвес — отдельные детали, нарисованные для GARAGE. Сами бамперы и кузов у этой модели одним цельным куском, поэтому заменить их нельзя.</div>
   </>)
   return (<>
     <Field label="Сцена"><Seg label="Сцена" value={c.env} onPick={env => set({ env })} items={[{ id: 'studio', name: 'Студия' }, { id: 'day', name: 'День' }, { id: 'night', name: 'Ночь' }]} /></Field>
@@ -107,7 +109,7 @@ function Summary() {
     ['Салон', c.interior ? INTERIOR_COLORS.find(x => x.hex === c.interior)?.name ?? c.interior.toUpperCase() : 'Заводской'],
     ['Полосы', (c.livery ?? 'none') === 'none' ? 'Нет' : `${LIVERIES.find(l => l.id === c.livery)?.name}, ${LIVERY_COLORS.find(x => x.hex === c.liveryColor)?.name ?? c.liveryColor}`],
     ['Тонировка', (c.tint ?? 0) > 0.01 ? `${Math.round((1 - (c.tint ?? 0)) * 100)}%` : 'Нет'],
-    ['Обвес', [c.spoiler !== 'none' && 'спойлер', c.splitter && 'сплиттер', c.skirts && 'пороги'].filter(Boolean).join(', ') || 'Нет']
+    ['Обвес', [c.spoiler !== 'none' && 'спойлер', c.splitter && 'сплиттер', c.canards && 'канарды', c.diffuser && c.diffuser !== 'none' && 'диффузор', c.skirts && 'пороги'].filter(Boolean).join(', ') || 'Нет']
   ]
   return <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>{rows.map(([a, b]) => <div className="sumline" key={a}><span>{a}</span><span>{b}</span></div>)}</div>
 }
