@@ -177,6 +177,11 @@ function drawRim(g: CanvasRenderingContext2D, design: string, color: string) {
     for (let i = 0; i < ds.holes; i++) { const a = (i * Math.PI * 2) / ds.holes; g.beginPath(); g.arc(Math.cos(a) * ds.at, Math.sin(a) * ds.at, ds.hr, 0, 7); g.fill() }
     g.fillStyle = grad
   }
+  // inner barrel falls into shadow just under the lip, so the face reads as sitting deeper in the rim
+  const sh = g.createRadialGradient(0, 0, 0.72, 0, 0, 0.93)
+  sh.addColorStop(0, 'rgba(0,0,0,0)'); sh.addColorStop(1, 'rgba(0,0,0,.42)')
+  g.fillStyle = sh; g.beginPath(); g.arc(0, 0, 0.93, 0, 7); g.fill()
+  g.fillStyle = grad
   // lip, hub, lugs
   g.strokeStyle = grad; g.lineWidth = 0.1; g.beginPath(); g.arc(0, 0, 0.93, 0, 7); g.stroke()
   g.fillStyle = grad; g.beginPath(); g.arc(0, 0, 0.17, 0, 7); g.fill()
@@ -201,10 +206,26 @@ function rimSprite(design: string, color: string) {
   return c
 }
 
-export function drawWheels(ctx: CanvasRenderingContext2D, marks: WheelMark[]) {
+/** overall brightness of the photo (0..1), sampled sparsely: lets the overlay match a dull or sunny shot */
+export function photoLuma(img: ImageData): number {
+  const { data, width, height } = img
+  let sum = 0, n = 0
+  const sx = Math.max(1, Math.floor(width / 48)), sy = Math.max(1, Math.floor(height / 32))
+  for (let y = 0; y < height; y += sy) for (let x = 0; x < width; x += sx) { const i = (y * width + x) * 4; sum += (0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]) / 255; n++ }
+  return n ? sum / n : 0.5
+}
+
+export function drawWheels(ctx: CanvasRenderingContext2D, marks: WheelMark[], luma = 0.5) {
+  // a dark photo gets a dimmer rim, a bright one a slightly brighter rim (clamped: never wash the design out)
+  const k = Math.max(0.72, Math.min(1.12, 0.7 + luma * 0.85))
   for (const m of marks) {
     ctx.save()
     ctx.translate(m.x, m.y); ctx.rotate(m.rot)
+    // soft contact shadow just outside the rim: the tyre and wheel arch cast it, so the rim does not look pasted on
+    ctx.save(); ctx.scale(m.rx, m.ry)
+    const cs = ctx.createRadialGradient(0, 0, 0.9, 0, 0, 1.14)
+    cs.addColorStop(0, 'rgba(0,0,0,.4)'); cs.addColorStop(1, 'rgba(0,0,0,0)')
+    ctx.fillStyle = cs; ctx.beginPath(); ctx.arc(0, 0, 1.14, 0, 7); ctx.fill(); ctx.restore()
     // feathered edge so the rim melts into the tyre
     const tmp = document.createElement('canvas'); const sz = 384; tmp.width = tmp.height = sz
     const t = tmp.getContext('2d')!
@@ -213,9 +234,65 @@ export function drawWheels(ctx: CanvasRenderingContext2D, marks: WheelMark[]) {
     const fm = t.createRadialGradient(sz / 2, sz / 2, sz * 0.44, sz / 2, sz / 2, sz * 0.5)
     fm.addColorStop(0, 'rgba(0,0,0,1)'); fm.addColorStop(1, 'rgba(0,0,0,0)')
     t.fillStyle = fm; t.fillRect(0, 0, sz, sz)
+    t.globalCompositeOperation = 'source-atop'
+    t.fillStyle = k < 1 ? `rgba(0,0,0,${(1 - k).toFixed(3)})` : `rgba(255,255,255,${((k - 1) * 0.6).toFixed(3)})`
+    t.fillRect(0, 0, sz, sz)
     ctx.drawImage(tmp, -m.rx, -m.ry, m.rx * 2, m.ry * 2)
     ctx.restore()
   }
+}
+
+/**
+ * Finds the rim around a click: casts rays outward and stops where the dark tyre begins (a long dark run, so
+ * dark gaps between spokes do not count). The boundary points are fitted with an ellipse from their covariance.
+ * Returns null when the photo is too ambiguous — the caller then falls back to a default-sized frame.
+ */
+export function fitWheel(img: ImageData, cx: number, cy: number, maxR: number): { x: number; y: number; rx: number; ry: number; rot: number } | null {
+  const { data, width: w, height: h } = img
+  const lum = (x: number, y: number) => { if (x < 0 || y < 0 || x >= w || y >= h) return 0; const i = ((y | 0) * w + (x | 0)) * 4; return (0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]) / 255 }
+  const run = Math.max(6, Math.round(w * 0.016)), r0 = maxR * 0.12
+  let x0 = cx, y0 = cy, darkRim = false
+  for (let pass = 0; pass < 2; pass++) {
+    const N = 72
+    // first pass decides the mode: a black rim sits on a black tyre, so the "tyre starts" test would fire at once.
+    // Then the outer edge of the dark mass is the tyre's outside, and the rim is the usual ~74% of that.
+    const raysAt = (dark: boolean) => {
+      const out: [number, number][] = []
+      for (let a = 0; a < N; a++) {
+        const th = (a / N) * Math.PI * 2, c = Math.cos(th), s = Math.sin(th)
+        let hit = -1
+        if (!dark) {
+          let d = 0
+          for (let r = r0; r < maxR; r += 1) { if (lum(x0 + c * r, y0 + s * r) < 0.13) { if (++d >= run) { hit = r - run; break } } else d = 0 }
+        } else {
+          let bright = 0
+          for (let r = r0; r < maxR; r += 1) { if (lum(x0 + c * r, y0 + s * r) > 0.24) { if (++bright >= 4) { hit = r - 4; break } } else bright = 0 }
+        }
+        if (hit > r0) out.push([x0 + c * hit, y0 + s * hit])
+      }
+      return out
+    }
+    let rays = darkRim ? raysAt(true) : raysAt(false)
+    if (!darkRim && rays.length < N * 0.45) { darkRim = true; rays = raysAt(true) }
+    if (rays.length < N * 0.45) return null
+    const med = rays.map(([x, y]) => Math.hypot(x - x0, y - y0)).sort((a, b) => a - b)[rays.length >> 1]
+    const ok = rays.filter(([x, y]) => { const d = Math.hypot(x - x0, y - y0); return d > med * 0.65 && d < med * 1.45 })
+    if (ok.length < N * 0.4) return null
+    const mx = ok.reduce((a, p) => a + p[0], 0) / ok.length, my = ok.reduce((a, p) => a + p[1], 0) / ok.length
+    let sxx = 0, syy = 0, sxy = 0
+    for (const [x, y] of ok) { const dx = x - mx, dy = y - my; sxx += dx * dx; syy += dy * dy; sxy += dx * dy }
+    sxx /= ok.length; syy /= ok.length; sxy /= ok.length
+    const t = (sxx + syy) / 2, d = Math.sqrt(((sxx - syy) / 2) ** 2 + sxy ** 2)
+    const major = Math.sqrt(2 * (t + d)), minor = Math.sqrt(2 * Math.max(1e-6, t - d))
+    const rot = 0.5 * Math.atan2(2 * sxy, sxx - syy)
+    x0 = mx; y0 = my
+    if (pass === 1) {
+      if (minor / major < 0.4 || major < w * 0.015 || major > maxR * 0.98) return null
+      const k = darkRim ? 0.74 : 0.99 // the dark run starts at the tyre; a hair inside covers the rim lip
+      return { x: mx, y: my, rx: major * k, ry: minor * k, rot }
+    }
+  }
+  return null
 }
 
 /* ---------- file handling ---------- */

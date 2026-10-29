@@ -8,7 +8,7 @@ import { ColorPicker, Field, Ic, IconBtn, Seg, Slider, Swatches, Toggle, type Ic
 import { Topbar } from '../ui/Shell'
 import { NameDialog, downloadBlob, thumb } from '../ui/Dialogs'
 import { carConfidence, keepLargest, loadSegmenter } from './segment'
-import { DEFAULT_PARAMS, RIMS, boxBlur, decode, drawWheels, excludeDark, fillSmallHoles, hexToHsl, recolor, rimThumb, stroke, validateFile, wand } from './engine'
+import { DEFAULT_PARAMS, RIMS, boxBlur, decode, drawWheels, excludeDark, fillSmallHoles, fitWheel, hexToHsl, photoLuma, recolor, rimThumb, stroke, validateFile, wand } from './engine'
 
 type Tool = 'wand' | 'brush' | 'erase' | 'wheels'
 type Tab = 'select' | 'color' | 'wheels' | 'ai'
@@ -71,6 +71,7 @@ export default function Scan() {
   const autosave = useRef(0)
   const pending = useRef(false)
   const dirtyMask = useRef(true)
+  const luma = useRef(0.5)
   const P = useRef(params); P.current = params
   const drag = useRef<null | { kind: 'paint' | 'move' | 'rx' | 'ry' | 'rot' | 'cmp'; lx: number; ly: number; add?: boolean }>(null)
   const abort = useRef<AbortController | null>(null)
@@ -90,7 +91,7 @@ export default function Scan() {
     const ctx = r.getContext('2d')!
     recolor(bd, mask.current, P.current, outData.current)
     ctx.putImageData(outData.current, 0, 0)
-    drawWheels(ctx, P.current.wheels)
+    drawWheels(ctx, P.current.wheels, luma.current)
 
     const o = ov.getContext('2d')!
     o.clearRect(0, 0, w, h)
@@ -135,7 +136,7 @@ export default function Scan() {
     for (let i = 0; i < mask.current.length; i++) { const v = mask.current[i], j = i * 4; im.data[j] = im.data[j + 1] = im.data[j + 2] = v; im.data[j + 3] = 255 }
     g.putImageData(im, 0, 0)
     const rc = document.createElement('canvas'); rc.width = w; rc.height = h
-    const rg = rc.getContext('2d')!; rg.putImageData(outData.current ?? new ImageData(w, h), 0, 0); drawWheels(rg, P.current.wheels)
+    const rg = rc.getContext('2d')!; rg.putImageData(outData.current ?? new ImageData(w, h), 0, 0); drawWheels(rg, P.current.wheels, luma.current)
     return {
       id, name, kind: 'photo', createdAt: created, updatedAt: Date.now(), preview: await thumb(await canvasToBlob(rc)),
       photo: { original: srcBlob.current!, mask: await canvasToBlob(mc), params: clone(P.current), size: { w, h }, base: baseC.current !== origC.current ? await canvasToBlob(baseC.current!) : undefined }
@@ -186,7 +187,7 @@ export default function Scan() {
     const w = c.width, h = c.height
     dims.current = { w, h }; origC.current = c; srcBlob.current = blob
     baseC.current = base ?? c
-    baseData.current = baseC.current.getContext('2d')!.getImageData(0, 0, w, h)
+    baseData.current = baseC.current.getContext('2d')!.getImageData(0, 0, w, h); luma.current = photoLuma(baseData.current)
     outData.current = null; maskImg.current = null
     mask.current = m ?? new Uint8ClampedArray(w * h); dirtyMask.current = true
     const np = p ? clone({ ...DEFAULT_PARAMS, ...p }) : blank()
@@ -273,8 +274,10 @@ export default function Scan() {
       if (hit >= 0) { setSel(hit); selRef.current = hit; drag.current = { kind: 'move', lx: x, ly: y } }
       else {
         const r = w * 0.085, n = P.current.wheels.length
-        setWheels(ws => [...ws, { x, y, rx: r, ry: r * 1.1, rot: 0, design: rim, color: rimColor }])
+        const fit = baseData.current ? fitWheel(baseData.current, x, y, w * 0.2) : null
+        setWheels(ws => [...ws, { ...(fit ?? { x, y, rx: r, ry: r * 1.1, rot: 0 }), design: rim, color: rimColor }])
         setSel(n); selRef.current = n; commit()
+        say(fit ? 'Диск подогнан по фото. Если рамка неточная, поправьте белыми точками' : 'Границу колеса найти не удалось: подгоните рамку вручную')
       }
     }
   }
@@ -299,6 +302,12 @@ export default function Scan() {
     useGarage.setState(s => ({ recents: [hex, ...s.recents.filter(c => c !== hex)].slice(0, 6) }))
   }
   const invert = () => { const m = mask.current; for (let i = 0; i < m.length; i++) m[i] = 255 - m[i]; dirtyMask.current = true; commit(); request() }
+  /** blur then re-sharpen the mask: removes jagged teeth and one-pixel specks on the border without moving it */
+  const smoothEdges = () => {
+    const { w, h } = dims.current, b = boxBlur(mask.current, w, h, 2), m = mask.current
+    for (let i = 0; i < m.length; i++) m[i] = Math.max(0, Math.min(255, (b[i] - 128) * 2.2 + 128))
+    dirtyMask.current = true; commit(); request(); say('Края выделения сглажены')
+  }
   const clearMask = () => { mask.current.fill(0); dirtyMask.current = true; commit(); request() }
   const noDark = () => { excludeDark(baseData.current!, mask.current, 0.2); dirtyMask.current = true; commit(); request(); say('Стёкла, шины и тёмные зоны исключены') }
   const autoSelect = async () => {
@@ -333,6 +342,23 @@ export default function Scan() {
   const pickTool = (t: Tool) => { setTool(t); setTab(t === 'wheels' ? 'wheels' : 'select') }
 
   const exportPng = async () => { paint(); try { downloadBlob(await canvasToBlob(resC.current!), `garage-scan-${Date.now()}.png`); say('PNG экспортирован') } catch (e) { say((e as Error).message) } }
+  /** one image: original on the left, result on the right (stacked on portrait photos), with small labels */
+  const exportCompare = async () => {
+    paint()
+    const { w, h } = dims.current, o = origC.current, r = resC.current
+    if (!o || !r) return
+    const stack = h > w * 1.1, c = document.createElement('canvas')
+    c.width = stack ? w : w * 2; c.height = stack ? h * 2 : h
+    const g = c.getContext('2d')!
+    g.drawImage(o, 0, 0, w, h); g.drawImage(r, stack ? 0 : w, stack ? h : 0, w, h)
+    const u = Math.max(1, w / 900); g.font = `700 ${14 * u}px Inter, Arial, sans-serif`; g.textBaseline = 'middle'
+    for (const [t, x, y] of [['ДО', 12 * u, 12 * u], ['ПОСЛЕ', (stack ? 0 : w) + 12 * u, (stack ? h : 0) + 12 * u]] as const) {
+      const tw = g.measureText(t).width + 16 * u
+      g.fillStyle = 'rgba(0,0,0,.55)'; g.beginPath(); g.roundRect(x, y, tw, 26 * u, 13 * u); g.fill()
+      g.fillStyle = '#fff'; g.fillText(t, x + 8 * u, y + 13 * u)
+    }
+    try { downloadBlob(await canvasToBlob(c), `garage-scan-before-after-${Date.now()}.png`); say('Сравнение «до/после» сохранено') } catch (e) { say((e as Error).message) }
+  }
   const save = async (name: string) => {
     setSaving(false)
     try {
@@ -412,6 +438,7 @@ export default function Scan() {
   return (
     <>
       <Topbar active="scan" undo={undo} redo={redo} canUndo={canUndo} canRedo={canRedo} guard={guard} status={status}>
+        <IconBtn n="compare" label="Скачать «до / после»" onClick={exportCompare} />
         <IconBtn n="download" label="Скачать PNG" onClick={exportPng} />
         <button className="btn primary" onClick={() => setSaving(true)}><Ic n="save" /><span className="hide-m">Сохранить фото</span></button>
       </Topbar>
@@ -456,6 +483,7 @@ export default function Scan() {
               </> : tool === 'wheels' ? null : <Field label="Размер кисти" value={`${Math.round(brush * 1000) / 10}%`}><Slider label="Размер кисти" min={0.008} max={0.12} step={0.002} value={brush} onChange={setBrush} /></Field>}
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <button className="btn sm" onClick={invert}>Инвертировать</button>
+                <button className="btn sm" onClick={smoothEdges} disabled={!hasMask()}>Сгладить края</button>
                 <button className="btn sm" onClick={clearMask} disabled={!hasMask()}>Снять выделение</button>
               </div>
               <Toggle label="Показывать выделение" on={showMask} onChange={setShowMask} />
@@ -480,7 +508,7 @@ export default function Scan() {
             </>}
 
             {tab === 'wheels' && <>
-              <div className="note">Нажмите на колесо на фото — появится рамка. Белые точки меняют ширину, высоту и наклон. Это 2D-наложение, а не генерация.</div>
+              <div className="note">Нажмите на центр колеса на фото: рамка подгонится по тёмной шине сама. Белые точки меняют ширину, высоту и наклон. Это 2D-наложение, а не генерация.</div>
               <Field label="Диск из каталога">
                 <div className="tiles">{RIMS.map(r => (
                   <button key={r.id} className={'tile' + ((selWheel?.design ?? rim) === r.id ? ' on' : '')} onClick={() => { setRim(r.id); if (selWheel) { patchWheel({ design: r.id }); commit() } }}>
