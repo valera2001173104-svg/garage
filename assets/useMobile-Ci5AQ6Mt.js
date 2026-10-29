@@ -1,0 +1,1 @@
+import{D as e,M as t}from"./index-CJFMZ5so.js";var n=t(e(),1),r=`(max-width: 899px)`;function i(){let[e,t]=(0,n.useState)(()=>matchMedia(r).matches);return(0,n.useEffect)(()=>{let e=matchMedia(r),n=()=>t(e.matches);return e.addEventListener(`change`,n),()=>e.removeEventListener(`change`,n)},[]),e}export{i as t};
