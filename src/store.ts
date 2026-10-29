@@ -70,8 +70,8 @@ type S = {
   setPhotoMode: (b: boolean) => void
   uiHidden: boolean
   setUiHidden: (b: boolean) => void
-  photoBg: 'garage' | 'void' | 'light'
-  setPhotoBg: (b: 'garage' | 'void' | 'light') => void
+  photoBg: 'garage' | 'void' | 'light' | 'cutout'
+  setPhotoBg: (b: 'garage' | 'void' | 'light' | 'cutout') => void
   idleOrbit: boolean
   setIdleOrbit: (b: boolean) => void
   theme: Theme

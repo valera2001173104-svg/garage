@@ -19,6 +19,15 @@ function concrete() {
   return t
 }
 
+/** soft elliptical shadow for the transparent export, where there is no floor to ground the car */
+function shadowTexture() {
+  const c = document.createElement('canvas'); c.width = c.height = 256
+  const x = c.getContext('2d')!, g = x.createRadialGradient(128, 128, 0, 128, 128, 128)
+  g.addColorStop(0, 'rgba(0,0,0,.85)'); g.addColorStop(0.45, 'rgba(0,0,0,.55)'); g.addColorStop(0.78, 'rgba(0,0,0,.14)'); g.addColorStop(1, 'rgba(0,0,0,0)')
+  x.fillStyle = g; x.fillRect(0, 0, 256, 256)
+  return new THREE.CanvasTexture(c)
+}
+
 const BG = { dark: { studio: '#0e1113', day: '#3a4249', night: '#05070a' }, light: { studio: '#e4e7e9', day: '#d3dce3', night: '#171c21' } } as const
 const ENV = {
   studio: { bg: '#0B0D0F', env: 1.0, key: 1.4, strips: 1 },
@@ -37,8 +46,11 @@ export function Studio() {
   const scene = useThree(s => s.scene)
   const tex = useMemo(concrete, [])
   useEffect(() => () => tex.dispose(), [tex])
+  const shadowTex = useMemo(shadowTexture, [])
+  useEffect(() => () => shadowTex.dispose(), [shadowTex])
   const E = ENV[env]
   const light = bgMode === 'light'
+  const cut = bgMode === 'cutout' // transparent export: no backdrop, fog or floor, only the car and its contact shadow
   const bg = light ? '#cfd4d8' : bgMode === 'void' ? '#050607' : BG[theme][env]
 
   const roomRef = useRef<THREE.MeshStandardMaterial>(null)
@@ -61,8 +73,8 @@ export function Studio() {
 
   return (
     <>
-      <color attach="background" args={[bg]} />
-      <fog attach="fog" args={[bg, 14, 34]} />
+      {!cut && <color attach="background" args={[bg]} />}
+      {!cut && <fog attach="fog" args={[bg, 14, 34]} />}
       <Environment key={env + bgMode + q} resolution={q < 1 ? 128 : 256} frames={1}>
         {strips.map((z, i) => <Lightformer key={i} form="rect" intensity={env === 'night' ? 1.2 : 3.2} color={env === 'day' ? '#fff3df' : '#dce9ff'} position={[0, 5, z]} rotation-x={Math.PI / 2} scale={[14, 1.4, 1]} />)}
         {/* long side softboxes: give the flanks the classic car-photography highlight bands */}
@@ -89,7 +101,7 @@ export function Studio() {
       )}
 
       {/* floor */}
-      <mesh rotation-x={-Math.PI / 2} receiveShadow>
+      {!cut && <mesh rotation-x={-Math.PI / 2} receiveShadow>
         <planeGeometry args={[60, 60]} />
         {low ? (
           <meshStandardMaterial map={tex} color={light ? '#9aa0a4' : theme === 'light' ? '#d4d8db' : '#555a5e'} roughness={0.82} metalness={0.08} envMapIntensity={0.15} />
@@ -97,7 +109,8 @@ export function Studio() {
           <MeshReflectorMaterial map={tex} color={light ? '#a8aeb2' : theme === 'light' ? '#d4d8db' : '#4a4e52'} blur={[0, 0]} resolution={1024} mixBlur={0} mixStrength={light ? 4 : 6} mixContrast={1}
             roughness={0.85} metalness={0.4} mirror={0.55} depthScale={0} />
         )}
-      </mesh>
+      </mesh>}
+      {cut && <mesh rotation-x={-Math.PI / 2} position={[0, 0.004, 0]} renderOrder={-1}><planeGeometry args={[6.0, 2.9]} /><meshBasicMaterial map={shadowTex} transparent depthWrite={false} opacity={1} toneMapped={false} /></mesh>}
       <ContactShadows position={[0, 0.005, 0]} opacity={0.75} scale={9} blur={2.4} far={1.6} resolution={256} frames={q < 1 ? 1 : Infinity} />
     </>
   )

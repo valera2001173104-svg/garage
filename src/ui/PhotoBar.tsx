@@ -1,9 +1,9 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { useGarage } from '../store'
 import { VIEWS } from '../lib/catalog'
 import { useMobile } from '../lib/useMobile'
-import { Field, Ic, IconBtn, Seg } from './kit'
+import { Field, Ic, IconBtn, Seg, Toggle } from './kit'
 import { downloadBlob } from './Dialogs'
 
 const RES = [{ id: '1920', name: 'HD' }, { id: '2560', name: '2K' }, { id: '3840', name: '4K' }]
@@ -22,15 +22,22 @@ export default function PhotoBar() {
   const [res, setRes] = useState(mobile ? '1920' : '2560')
   const [fmt, setFmt] = useState<(typeof FMT)[number]['id']>('png')
 
+  const cut = photoBg === 'cutout'
+  // the page shows a checkerboard behind the transparent canvas so the cut-out is visible
+  useEffect(() => { document.body.toggleAttribute('data-cutout', cut); return () => document.body.removeAttribute('data-cutout') }, [cut])
   const shoot = async () => {
+    const type = cut && fmt === 'jpeg' ? 'png' : fmt // JPG cannot hold transparency
     setBusy(true)
     gsap.fromTo(flash.current, { opacity: 0.8 }, { opacity: 0, duration: 0.45 })
-    const b = await capture?.({ width: +res, type: 'image/' + fmt, q: 0.93 })
+    const b = await capture?.({ width: +res, type: 'image/' + type, q: 0.93 })
     setBusy(false)
-    if (b) { downloadBlob(b, `garage-photo-${Date.now()}.${fmt === 'jpeg' ? 'jpg' : fmt}`); say('Снимок сохранён') } else say('Не удалось получить снимок')
+    if (b) { downloadBlob(b, `garage-photo-${Date.now()}.${type === 'jpeg' ? 'jpg' : type}`); say('Снимок сохранён') } else say('Не удалось получить снимок')
   }
   const scenes = <Seg label="Сцена" value={env} onPick={e => set({ env: e })} items={[{ id: 'studio', name: 'Студия' }, { id: 'day', name: 'День' }, { id: 'night', name: 'Ночь' }]} />
-  const bgs = <Seg label="Фон" value={photoBg} onPick={setPhotoBg} items={[{ id: 'garage', name: 'Гараж' }, { id: 'void', name: 'Тёмный' }, { id: 'light', name: 'Светлый' }]} />
+  const bgs = (<>
+    <Seg label="Фон" value={cut ? '' : photoBg} onPick={setPhotoBg} items={[{ id: 'garage', name: 'Гараж' }, { id: 'void', name: 'Тёмный' }, { id: 'light', name: 'Светлый' }]} />
+    <Toggle label="Прозрачный фон" on={cut} onChange={on => setPhotoBg(on ? 'cutout' : 'garage')} />
+  </>)
   return (
     <div className="layer">
       <div className="flash" ref={flash} />
@@ -64,6 +71,7 @@ export default function PhotoBar() {
             <div className="rbody" style={{ padding: 16 }}>
               <Field label="Разрешение"><Seg label="Разрешение" value={res} onPick={setRes} items={RES} /></Field>
               <Field label="Формат"><Seg label="Формат" value={fmt} onPick={setFmt} items={FMT.map(f => ({ id: f.id, name: f.name }))} /></Field>
+              {cut && <div className="note">Фон прозрачный: снимок сохранится как PNG или WebP (JPG не хранит прозрачность).</div>}
               <button className="shutter" style={{ alignSelf: 'center' }} aria-label="Сделать снимок" disabled={busy} onClick={shoot} />
               <div className="muted" style={{ textAlign: 'center', fontSize: 12 }}>Сделать снимок</div>
               <button className="btn ghost wide" onClick={() => setUiHidden(true)}><Ic n="eye" />Скрыть интерфейс (H)</button>

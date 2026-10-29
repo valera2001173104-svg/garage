@@ -36,6 +36,7 @@ a { color: var(--accent); }
 .app { position: fixed; inset: 0; height: 100dvh; overflow: hidden; }
 .stage { position: absolute; inset: 0; }
 .stage-canvas { position: absolute !important; inset: 0; touch-action: none; }
+body[data-cutout] .stage-canvas { background: repeating-conic-gradient(#8d9296 0 25%, #b9bec2 0 50%) 0 0 / 24px 24px; }
 .layer { position: absolute; inset: 0; pointer-events: none; }
 .layer > * { pointer-events: auto; }
 .muted { color: var(--muted); } .faint { color: var(--faint); }
