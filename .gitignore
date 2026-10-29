@@ -6,3 +6,6 @@ server/.env
 .claude/
 # raw third-party review text stays local; the analysis is in research/fixes.md
 research/reviews_*.csv
+
+# Local Netlify folder
+.netlify

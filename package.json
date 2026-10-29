@@ -12,6 +12,7 @@
     "test": "vitest run",
     "models": "gltf-transform optimize models-src/CarConcept.glb public/models/car.glb --compress meshopt --texture-compress webp --texture-size 2048 --flatten false --join false --instance false --palette false --simplify false && gltf-transform optimize models-src/CarConcept.glb public/models/car-mobile.glb --compress meshopt --texture-compress webp --texture-size 1024 --flatten false --join false --instance false --palette false --simplify false",
     "deploy": "bash scripts/deploy-pages.sh",
+    "deploy:netlify": "BASE_PATH=/ vite build && npx -y netlify-cli@20 deploy --prod --dir dist --site 75bc0c48-ce2f-45cd-b075-a67aa7e169a1",
     "seg:assets": "cp node_modules/@mediapipe/tasks-vision/wasm/vision_wasm_internal.* node_modules/@mediapipe/tasks-vision/wasm/vision_wasm_nosimd_internal.* public/mediapipe/"
   },
   "dependencies": {

@@ -56,6 +56,7 @@ npm run server     # http://localhost:8787, serves dist/ + the optional AI/3D pr
 npm test           # 18 tests: share links, wheel/car catalogue, wheel auto-fit, recolour (Vitest)
 npm run build
 npm run deploy     # builds for GitHub Pages and pushes the gh-pages branch
+npm run deploy:netlify   # builds for the site root and publishes to https://garage-built-not-bought.netlify.app (needs `npx netlify-cli@20 login` once)
 ```
 **GitHub Pages is static hosting:** everything works (3D, photo editor, projects, share links, offline install), but `/api/*` does not exist there,
 so AI TUNING and CREATE 3D show “Требуется настройка AI” instead of faking results. To use them, run `npm run server` with `server/.env`
